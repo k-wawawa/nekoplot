@@ -1,15 +1,11 @@
 import time
 from enum import Flag, auto,Enum
 import skia
-# from matplotlib.ticker import AutoLocator,ScalarFormatter
 import numpy as np
 
-if not "status" in dir():
-    from . import status
-if not "color" in dir():
-    from . import color
-if not "utility" in dir():
-    from . import utility
+from . import status
+from . import color
+from . import utility
 
 BASE_LINE_PAINT = skia.Paint(AntiAlias=True,
                              Style=skia.Paint.Style.kStroke_Style,
@@ -49,11 +45,15 @@ class Line:
         self._lpath = skia.Path()
         self.xrange = (np.inf,-np.inf)
         self.yrange = (np.inf,-np.inf)
+        self._scaled_data = None
+        self._xscale = lambda x:x
+        self._yscale = lambda x:x
         self.matrix = skia.Matrix.I()
 
     def clear(self):
-        self._update &= status.LineStatus.NONE
+        self._update = status.LineStatus.NONE
         self._data = None
+        self._scaled_data = None
         self._lpath = skia.Path()
         self.xrange = (np.inf,-np.inf)
         self.yrange = (np.inf,-np.inf)
@@ -70,17 +70,36 @@ class Line:
             self.xrange = (np.inf,-np.inf)
             self.yrange = (np.inf,-np.inf)
             self._data = None
+            self._scaled_data = None
             self._lpath = skia.Path()
+            return
         d = np.array(value,dtype=np.float64).T
-        self.xrange = (np.min(d[0]),np.max(d[0]))
-        self.yrange = (np.min(d[1]),np.max(d[1]))
         self._data = d
+        sd = np.array([self._xscale(d[0]),self._yscale(d[1])])
+        self._scaled_data = sd
+        self.xrange = (np.min(sd[0][np.isfinite(sd[0])]),np.max(sd[0][np.isfinite(sd[0])]))
+        self.yrange = (np.min(sd[1][np.isfinite(sd[1])]),np.max(sd[1][np.isfinite(sd[1])]))
         self._lpath = skia.Path()
-        self._lpath.moveTo(*d.T[0])
-        for x,y in d.T[1:]:
-            self._lpath.lineTo(x,y)
-        # self._lpath.close()
-        # _dta 3*N
+        if self.data is not None:
+                sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
+                self._scaled_data = sd
+                finite = np.all(np.isfinite(sd),axis=0)
+                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
+                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
+                self._lpath = skia.Path()
+                connect = False
+                for x,y,ok in np.vstack([sd,finite]).T:
+                    if connect and ok:
+                        self._lpath.lineTo(x,y)
+                    elif (not connect) and ok:
+                        self._lpath.moveTo(x,y)
+                        self._lpath.lineTo(x,y)
+                        connect = True
+                    elif connect and (not ok):
+                        connect = False
+                    else:
+                        pass
+        self._update = status.LineStatus.DATA
 
     @property
     def label(self):
@@ -94,7 +113,6 @@ class Line:
             if dargs["data"] is None:
                 self.clear()
             else:
-                self._update = status.LineStatus.DATA
                 self.data = dargs["data"]
         if "linecolor" in dargs:
             self.linecolor = dargs.get("linecolor",self.linecolor)
@@ -108,6 +126,10 @@ class Line:
             self.markertype = dargs.get("markertype",self.markertype)
         if "markersize" in dargs:
             self.markersize = dargs.get("markersize",self.markersize)
+        if "xscale" in dargs:
+            self.xscale = dargs.get("xscale",self.xscale)
+        if "yscale" in dargs:
+            self.yscale = dargs.get("yscale",self.yscale)
 
     @property
     def markertype(self):
@@ -211,17 +233,111 @@ class Line:
         else:
             raise RuntimeWarning("line size warning")
 
+    @property
+    def xscale(self):
+        return self._xscale
+    @xscale.setter
+    def xscale(self,value):
+        if callable(value):
+            self._xscale = value
+            if self.data is not None:
+                sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
+                self._scaled_data = sd
+                finite = np.all(np.isfinite(sd),axis=0)
+                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
+                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
+                self._lpath = skia.Path()
+                connect = False
+                for x,y,ok in np.vstack([sd,finite]).T:
+                    if connect and ok:
+                        self._lpath.lineTo(x,y)
+                    elif (not connect) and ok:
+                        self._lpath.moveTo(x,y)
+                        self._lpath.lineTo(x,y)
+                        connect = True
+                    elif connect and (not ok):
+                        connect = False
+                    else:
+                        pass
+                self._update = status.LineStatus.DATA
+        else:
+            raise RuntimeWarning("numpy array callable only")
+
+    @property
+    def yscale(self):
+        return self._yscale
+    @yscale.setter
+    def yscale(self,value):
+        if callable(value):
+            self._yscale = value
+            if self.data is not None:
+                sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
+                self._scaled_data = sd
+                finite = np.all(np.isfinite(sd),axis=0)
+                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
+                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
+                self._lpath = skia.Path()
+                connect = False
+                for x,y,ok in np.vstack([sd,finite]).T:
+                    if connect and ok:
+                        self._lpath.lineTo(x,y)
+                    elif (not connect) and ok:
+                        self._lpath.moveTo(x,y)
+                        self._lpath.lineTo(x,y)
+                        connect = True
+                    elif connect and (not ok):
+                        connect = False
+                    else:
+                        pass
+                self._update = status.LineStatus.DATA
+        else:
+            raise RuntimeWarning("numpy array callable only")
+
+    @property
+    def xyscale(self):
+        return (self.xscale,self.yscale)
+    @xyscale.setter
+    def xyscale(self,value):
+        if callable(value[0]) and callable(value[1]):
+            self._xscale = value[0]
+            self._yscale = value[1]
+            if self.data is not None:
+                sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
+                self._scaled_data = sd
+                finite = np.all(np.isfinite(sd),axis=0)
+                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
+                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
+                self._lpath = skia.Path()
+                connect = False
+                for x,y,ok in np.vstack([sd,finite]).T:
+                    if connect and ok:
+                        self._lpath.lineTo(x,y)
+                    elif (not connect) and ok:
+                        self._lpath.moveTo(x,y)
+                        self._lpath.lineTo(x,y)
+                        connect = True
+                    elif connect and (not ok):
+                        connect = False
+                    else:
+                        pass
+                self._update = status.LineStatus.DATA
+        else:
+            raise RuntimeWarning("2-Tuple of numpy array callable only")
+
     def draw(self,matrix,rect=None):
         # lineとかmarkerとか書くやつ
-        if self._update == status.LineStatus.NONE and matrix == self.matrix:
+        # ここがおかしい？？？？？？mat==self.matのはんてい
+        if self._update == status.LineStatus.NONE and (tuple(matrix.get9()) == tuple(self.matrix.get9())):
             return
         if self._data is None:
             self._lpath = skia.Path()
             self._aff_data = skia.Path()
+            self._update = status.LineStatus.NONE
+            return
         self._aff_data = skia.Path()
         self._lpath.transform(matrix,self._aff_data)
         self.matrix = matrix
-        self._update &= status.LineStatus.NONE
+        self._update = status.LineStatus.NONE
 
     def flush(self,canvas):
         # canvas にぶち込む
@@ -242,10 +358,14 @@ class FLine():
         self._lpath = skia.Path()
         self.xrange = (np.inf,-np.inf)
         self.yrange = (np.inf,-np.inf)
+        self._scaled_data = None
+        self._xscale = lambda x:x
+        self._yscale = lambda x:x
 
     def clear(self):
         self._update &= status.LineStatus.NONE
         self._data = None
+        self._scaled_data = None
         self._lpath = skia.Path()
         self.xrange = (np.inf,-np.inf)
         self.yrange = (np.inf,-np.inf)
@@ -262,15 +382,36 @@ class FLine():
             self.xrange = (np.inf,-np.inf)
             self.yrange = (np.inf,-np.inf)
             self._data = None
+            self._scaled_data = None
             self._lpath = skia.Path()
+            return
         d = np.array(value,dtype=np.float64).T
-        self.xrange = (np.min(d[0]),np.max(d[0]))
-        self.yrange = (np.min(d[1]),np.max(d[1]))
         self._data = d
+        sd = np.array([self._xscale(d[0]),self._yscale(d[1])])
+        self._scaled_data = sd
+        self.xrange = (np.min(sd[0][np.isfinite(sd[0])]),np.max(sd[0][np.isfinite(sd[0])]))
+        self.yrange = (np.min(sd[1][np.isfinite(sd[1])]),np.max(sd[1][np.isfinite(sd[1])]))
         self._lpath = skia.Path()
-        self._lpath.moveTo(*value[0])
-        for x,y in value[1:]:
-            self._lpath.lineTo(x,y)
+        if self.data is not None:
+                sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
+                self._scaled_data = sd
+                finite = np.all(np.isfinite(sd),axis=0)
+                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
+                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
+                self._lpath = skia.Path()
+                connect = False
+                for x,y,ok in np.vstack([sd,finite]).T:
+                    if connect and ok:
+                        self._lpath.lineTo(x,y)
+                    elif (not connect) and ok:
+                        self._lpath.moveTo(x,y)
+                        self._lpath.lineTo(x,y)
+                        connect = True
+                    elif connect and (not ok):
+                        connect = False
+                    else:
+                        pass
+        self._update = status.LineStatus.DATA
 
     @property
     def label(self):
@@ -284,12 +425,15 @@ class FLine():
             if dargs["data"] is None:
                 self.clear()
             else:
-                self._update = status.LineStatus.DATA
                 self.data = dargs["data"]
         if "linecolor" in dargs:
             self.linecolor = dargs.get("linecolor",self.linecolor)
         if "linetype" in dargs:
             self.linetype = dargs.get("linetype",self.linetype)
+        if "xscale" in dargs:
+            self.xscale = dargs.get("xscale",self.xscale)
+        if "yscale" in dargs:
+            self.yscale = dargs.get("yscale",self.yscale)
 
     @property
     def linetype(self):
@@ -340,8 +484,99 @@ class FLine():
         else:
             raise RuntimeWarning("line color warning")
 
+    @property
+    def xscale(self):
+        return self._xscale
+    @xscale.setter
+    def xscale(self,value):
+        if callable(value):
+            self._xscale = value
+            if self.data is not None:
+                sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
+                self._scaled_data = sd
+                finite = np.all(np.isfinite(sd),axis=0)
+                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
+                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
+                self._lpath = skia.Path()
+                connect = False
+                for x,y,ok in np.vstack([sd,finite]).T:
+                    if connect and ok:
+                        self._lpath.lineTo(x,y)
+                    elif (not connect) and ok:
+                        self._lpath.moveTo(x,y)
+                        self._lpath.lineTo(x,y)
+                        connect = True
+                    elif connect and (not ok):
+                        connect = False
+                    else:
+                        pass
+                self._update = status.LineStatus.DATA
+        else:
+            raise RuntimeWarning("numpy array callable only")
+
+    @property
+    def yscale(self):
+        return self._yscale
+    @yscale.setter
+    def yscale(self,value):
+        if callable(value):
+            self._yscale = value
+            if self.data is not None:
+                sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
+                self._scaled_data = sd
+                finite = np.all(np.isfinite(sd),axis=0)
+                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
+                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
+                self._lpath = skia.Path()
+                connect = False
+                for x,y,ok in np.vstack([sd,finite]).T:
+                    if connect and ok:
+                        self._lpath.lineTo(x,y)
+                    elif (not connect) and ok:
+                        self._lpath.moveTo(x,y)
+                        self._lpath.lineTo(x,y)
+                        connect = True
+                    elif connect and (not ok):
+                        connect = False
+                    else:
+                        pass
+                self._update = status.LineStatus.DATA
+        else:
+            raise RuntimeWarning("numpy array callable only")
+
+    @property
+    def xyscale(self):
+        return (self.xscale,self.yscale)
+    @xyscale.setter
+    def xyscale(self,value):
+        if callable(value[0]) and callable(value[1]):
+            self._xscale = value[0]
+            self._yscale = value[1]
+            if self.data is not None:
+                sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
+                self._scaled_data = sd
+                finite = np.all(np.isfinite(sd),axis=0)
+                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
+                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
+                self._lpath = skia.Path()
+                connect = False
+                for x,y,ok in np.vstack([sd,finite]).T:
+                    if connect and ok:
+                        self._lpath.lineTo(x,y)
+                    elif (not connect) and ok:
+                        self._lpath.moveTo(x,y)
+                        self._lpath.lineTo(x,y)
+                        connect = True
+                    elif connect and (not ok):
+                        connect = False
+                    else:
+                        pass
+                self._update = status.LineStatus.DATA
+        else:
+            raise RuntimeWarning("2-Tuple of numpy array callable only")
+
     def draw(self):
-        self._update &= status.LineStatus.NONE
+        self._update = status.LineStatus.NONE
 
     def flush(self,canvas):
         # canvas にぶち込む
@@ -360,10 +595,13 @@ class Image():
         self.colormap = "parula"
         self.img = None
         self._colorbar = None
+        self._vscale = lambda x:x
+        self._scaled_data = None
 
     def clear(self):
         self._update &= status.ImageStatus.NONE
         self.data = None
+        self._scaled_data = None
         self.img = None
 
     def set(self,**dargs):
@@ -372,8 +610,9 @@ class Image():
                 self.clear()
             else:
                 self._update |= status.ImageStatus.DATA
-                self.data = np.array(dargs["data"])
-        if {"vmin","vmax","colormap"} & set(dargs.keys()):
+                self.data = np.array(dargs.pop("data"))
+                self._scaled_data = self.vscale(self.data.astype(np.float32))
+        if {"vmin","vmax","vscale","colormap"} & set(dargs.keys()):
             self._update |= status.ImageStatus.VALUE
         if "vmin" in dargs:
             self.vmin = dargs.get("vmin",self.vmin)
@@ -381,6 +620,8 @@ class Image():
             self.vmax = dargs.get("vmax",self.vmax)
         if self.vmin >= self.vmax:
             self.vmax = self.vmin
+        if "vscale" in dargs:
+            self.vscale = dargs.get("vscale",self.vscale)
         if "colormap" in dargs:
             self.colormap = dargs.get("colormap")
             if self.colorbar is not None:
@@ -392,45 +633,54 @@ class Image():
     def make_histogram(self):
         if self.data is None:
             self._histogram = None
-        imgmax = int(np.max(self.data))
-        bins = imgmax + 1
-        self._histogram = np.histogram(self.data,bins=bins,range=(0,bins))[0]
+            return self._histogram
+        if np.issubdtype(self.data.dtype,np.integer):
+            arr = self.data
+            vmin,vmax = np.min(arr),np.max(arr)
+            bins = int(vmax - vmin +1)
+            r = (vmin-0.5,vmax+0.5)
+        elif np.issubdtype(self.data.dtype,np.floating):
+            arr = self.data[np.isfinite(self.data)]
+            bins = "auto"
+            r = (np.min(arr),np.max(arr))
+        else:
+            raise RuntimeWarning("only integer or float")
+        counts,edges = np.histogram(arr,bins=bins,range=r)
+        self._histogram = np.array([(edges[:-1]+edges[1:])*0.5,counts])
         if self.colorbar is not None:
-            self.colorbar._update |= status.GraphStatus.FROM_DATA
+            self.colorbar.line.set(data=utility.histogram_proc(self._histogram))
         return self._histogram
 
     def auto_colorrange(self,left=None,right=None):
         if self.data is None:
-            self.set(vmin=0,vmax=1)
+            self.set(vmin=1,vmax=1)
             return
         self.auto_left = left if left is not None else self.auto_left
         self.auto_right = right if right is not None else self.auto_right
-        qleft,qright = np.percentile(self.data,[self.auto_left,self.auto_right])
+        qleft,qright = np.percentile(self.data[np.isfinite(self._scaled_data)],[self.auto_left,self.auto_right])
         self.set(vmin=qleft,vmax=qright)
 
     def draw(self):
         if (self._update == status.ImageStatus.NONE) or (self.data is None):
             return
         # Apply color map
-        tmp = self.data.astype(np.float32)
-        if self.vmax == self.vmin:
-            tmp[np.isnan(tmp)] = self.vmin
-            small = tmp<=self.vmin
-            large = tmp>self.vmax
+        tmp = self._scaled_data.copy()
+        vmin,vmax = self.vscale(self.vmin),self.vscale(self.vmax)
+        if vmin==vmax:
+            tmp[np.isnan(tmp)] = vmin
+            small = tmp<=vmin
+            large = tmp>vmax
             tmp[small] = 0
             tmp[large] = 255
         else:
-            if True:
-                d = 255./(self.vmax-self.vmin)
-                tmp[np.isnan(tmp)] = self.vmin
-                small = tmp<self.vmin
-                large = tmp>self.vmax
-                tmp[small] = self.vmin
-                tmp[large] = self.vmax
-                tmp -= self.vmin
-                tmp *= d
-            else:
-                tmp = np.interp(tmp,[self.vmin,self.vmax],[0,255])
+            d = 255./(vmax-vmin)
+            tmp[np.isnan(tmp)] = vmin
+            small = tmp<vmin
+            large = tmp>vmax
+            tmp[small] = vmin
+            tmp[large] = vmax
+            tmp -= vmin
+            tmp *= d
         tmp = self.colormap.apply(tmp).copy()
         self.img = skia.Image.fromarray(tmp,skia.ColorType.kRGBA_8888_ColorType)
         self._update &= status.ImageStatus.NONE
@@ -452,8 +702,18 @@ class Image():
     def colormap(self,value):
         self._colormap = color.ColorMap(value)
 
-class Matrix():
-    pass
+    @property
+    def vscale(self):
+        return self._vscale
+    @vscale.setter
+    def vscale(self,value):
+        if callable(value):
+            self._vscale = value
+            if self.data is not None:
+                self._scaled_data = self.vscale(self.data.astype(np.float32))
+            self._update |= status.ImageStatus.VALUE
+        else:
+            raise RuntimeWarning("numpy array callable only")
 
 class Fonts():
     segoe = skia.Typeface.MakeFromName("Segoe UI")

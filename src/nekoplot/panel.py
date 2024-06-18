@@ -9,14 +9,10 @@ GL_SampleCnt = None
 
 import skia
 
-if not "status" in dir():
-    from . import status
-if not "color" in dir():
-    from . import color
-if not "event" in dir():
-    from . import event
-if not "layout" in dir():
-    from . import layout
+from . import status
+from . import color
+from . import event
+from . import layout
 
 class SkPlotExcept(Exception):
     def __init__(self,s):
@@ -324,6 +320,9 @@ class Panel:
                 return True
         return False
 
+    def ChangeCursor(self,cursor):
+        self.wx.SetCursor(wx.Cursor(cursor.value))
+
     @property
     def root(self):
         return (self.parent is None)
@@ -446,7 +445,8 @@ class Panel:
     def _OnMouseLUp(self,event):
         evt = self.event2child(event)
         for child in self.children:
-            child._OnMouseLUp(evt)
+            if child.contains(evt.x,evt.y):
+                child._OnMouseLUp(evt)
         if not evt.Skipped:
             self.OnMouseLUp(event)
         else:
@@ -471,7 +471,8 @@ class Panel:
     def _OnMouseRUp(self,event):
         evt = self.event2child(event)
         for child in self.children:
-            child._OnMouseRUp(evt)
+            if child.contains(evt.x,evt.y):
+                child._OnMouseRUp(evt)
         if not evt.Skipped:
             self.OnMouseRUp(event)
         else:
@@ -496,7 +497,8 @@ class Panel:
     def _OnMouseMUp(self,event):
         evt = self.event2child(event)
         for child in self.children:
-            child._OnMouseMUp(evt)
+            if child.contains(evt.x,evt.y):
+                child._OnMouseMUp(evt)
         if not evt.Skipped:
             self.OnMouseMUp(event)
         else:

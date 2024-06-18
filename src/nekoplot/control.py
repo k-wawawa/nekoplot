@@ -3,12 +3,9 @@ from wx import glcanvas
 
 import skia
 
-if not "status" in dir():
-    from . import status
-if not "panel" in dir():
-    from . import panel
-if not "item" in dir():
-    from . import item
+from . import status
+from . import panel
+from . import item
 
 class TextBox(panel.PanelwoChild):
     def __init__(self,parent):
