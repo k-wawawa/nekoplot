@@ -1,5 +1,6 @@
 
 from enum import Flag, auto,Enum
+import wx
 
 class LineStatus(Flag):
     NONE = 0
@@ -59,3 +60,7 @@ class BorderStatus(Flag):
     RIGHT = auto()
     BOTTOM = auto()
     ALL = LEFT|TOP|RIGHT|BOTTOM
+
+class MouseStyle(Enum):
+    ARROW = wx.CURSOR_ARROW
+    HAND = wx.CURSOR_HAND
