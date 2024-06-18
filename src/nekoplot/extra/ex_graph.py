@@ -25,6 +25,7 @@ class GraphDetector(graph.AbstractGraph):
         self._colorbar = None
         self.font = item.Font(size=12)
         self.paint = skia.Paint(Color=skia.Color(0,0,0),AntiAlias=True)
+        self._vlogscale = False
 
     def set(self,**dargs):
         self._update |= status.GraphStatus.UPDATE
@@ -152,12 +153,6 @@ class GraphDetector(graph.AbstractGraph):
     def histogram(self):
         return self.image._histogram
 
-class GraphDetectorV2(GraphDetector):
-    def __init__(self,parent,rotate=status.RotateStatus.NONE):
-        super().__init__(parent,rotate)
-        self.image = ex_item.DetectorImageV2()
-        self._vlogscale = False
-
     @property
     def vlogscale(self):
         return self._vlogscale
@@ -168,5 +163,3 @@ class GraphDetectorV2(GraphDetector):
         self.image.set(vscale=scale.Log10Scale() if value else scale.LinearScale())
         if self.colorbar is not None:
             self.colorbar.vlogscale = value
-
-GraphDetector = GraphDetectorV2
