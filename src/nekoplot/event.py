@@ -115,7 +115,7 @@ class KeyEvent(Event):
         x,y = event.EventObject.ScreenToClient(pos.x,pos.y)
         evt.x = x
         evt.y = y
-        event.SetKey(event)
+        evt.SetKey(event)
         return evt
 
     def SetKey(self,event):
