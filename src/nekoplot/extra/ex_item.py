@@ -126,7 +126,7 @@ class DetectorImage():
             counts,edges = np.histogram(arr,bins=bins,range=r)
             self._histogram = np.array([(edges[:-1]+edges[1:])*0.5,counts])
             if self.colorbar is not None:
-                self.colorbar.line.set(data=utility.histogram_proc(self._histogram))
+                self.colorbar.line.set(data=self._histogram)
         else:
             if not np.all(self.data_mask):
                 if np.issubdtype(self.data.dtype,np.integer):
@@ -141,7 +141,7 @@ class DetectorImage():
                 counts,edges = np.histogram(arr,bins=bins,range=r)
                 self._histogram = np.array([(edges[:-1]+edges[1:])*0.5,counts])
                 if self.colorbar is not None:
-                    self.colorbar.line.set(data=utility.histogram_proc(self._histogram))
+                    self.colorbar.line.set(data=self._histogram)
             else:
                 self._histogram = None
                 if self.colorbar is not None:
@@ -155,14 +155,22 @@ class DetectorImage():
         if self.data_mask is None:
             self.auto_left = left if left is not None else self.auto_left
             self.auto_right = right if right is not None else self.auto_right
-            qleft,qright = np.percentile(self.data[np.isfinite(self._scaled_data)],[self.auto_left,self.auto_right])
-            self.set(vmin=qleft,vmax=qright)
+            finite = np.isfinite(self._scaled_data)
+            if np.any(finite):
+                qleft,qright = np.percentile(self.data[finite],[self.auto_left,self.auto_right])
+                self.set(vmin=qleft,vmax=qright)
+            else:
+                self.set(vmin=1,vmax=1)
         else:
             if not np.all(self.data_mask):
                 self.auto_left = left if left is not None else self.auto_left
                 self.auto_right = right if right is not None else self.auto_right
-                qleft,qright = np.percentile(self.data[np.logical_and(np.isfinite(self._scaled_data),~self.data_mask)],[self.auto_left,self.auto_right])
-                self.set(vmin=qleft,vmax=qright)
+                mask = np.logical_and(np.isfinite(self._scaled_data),~self.data_mask)
+                if np.any(mask):
+                    qleft,qright = np.percentile(self.data[mask],[self.auto_left,self.auto_right])
+                    self.set(vmin=qleft,vmax=qright)
+                else:
+                    self.set(vmin=1,vmax=1)
             else:
                 self.set(vmin=1,vmax=1)
 

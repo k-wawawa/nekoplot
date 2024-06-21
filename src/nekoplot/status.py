@@ -64,3 +64,9 @@ class BorderStatus(Flag):
 class MouseStyle(Enum):
     ARROW = wx.CURSOR_ARROW
     HAND = wx.CURSOR_HAND
+
+class AxisType(Enum):
+    X = auto()
+    Y = auto()
+    X2 = auto()
+    Y2 = auto()

@@ -27,3 +27,4 @@ src/nekoplot.egg-info/PKG-INFO
 src/nekoplot.egg-info/requires.txt
 src/nekoplot.egg-info/SOURCES.txt
 src/nekoplot.egg-info/top_level.txt
+src/nekoplot/__pycache__/dialog.cpython-311.pyc

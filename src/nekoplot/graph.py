@@ -12,6 +12,7 @@ from . import panel
 from . import event
 from . import utility
 from . import scale
+from . import dialog
 
 class AbstractGraph(panel.Panel):
     def __init__(self,parent,rotate=status.RotateStatus.NONE):
@@ -159,9 +160,13 @@ class AbstractGraph(panel.Panel):
         canvas.drawImage(self.picture,0,0)
         # rec.clipRect(self.clipRect,skia.ClipOp.kIntersect)
         self.grapharea(canvas)
-        canvas.restore()
         if self.rubber_rect is not None:
+            canvas.save()
+            canvas.clipRect(self.deviceRect,skia.ClipOp.kIntersect)
+            canvas.concat(skia.Matrix.MakeAll(*self.mat9))
             canvas.drawRect(self.rubber_rect,skia.Paint(Style=skia.Paint.kStroke_Style))
+            canvas.restore()
+        canvas.restore()
 
     def _draw_lines(self,canvas,matrix,rect):
         for line in self.lines:
@@ -233,24 +238,42 @@ class AbstractGraph(panel.Panel):
     def line_bounds(self):
         minx,maxx = np.inf,-np.inf
         miny,maxy = np.inf,-np.inf
-        xrs = np.array([itm.xrange for itm in self.lines+self.flines]).T
-        yrs = np.array([itm.yrange for itm in self.lines+self.flines]).T
-        minx,maxx = np.min([minx,*xrs[0]]),np.max([maxx,*xrs[1]])
-        miny,maxy = np.min([miny,*yrs[0]]),np.max([maxy,*yrs[1]])
+        items = []
+        if hasattr(self,"lines"):
+            items.extend(self.lines)
+        if hasattr(self,"flines"):
+            items.extend(self.flines)
+        if hasattr(self,"line"):
+            items.append(self.line)
+        if hasattr(self,"fline"):
+            items.append(self.fline)
+        if len(items) >0:
+            xrs = np.array([itm.xrange for itm in items]).T
+            yrs = np.array([itm.yrange for itm in items]).T
+            minx,maxx = np.min([minx,*xrs[0]]),np.max([maxx,*xrs[1]])
+            miny,maxy = np.min([miny,*yrs[0]]),np.max([maxy,*yrs[1]])
+        else:
+            minx,maxx = (0,1)
+            miny,maxy = (0,1)
         return ((minx,maxx),(miny,maxy))
 
-    def autorange(self):
+    def autorange(self,x=True,y=True):
         xr,yr = self.line_bounds()
         dx = (xr[1]-xr[0])*0.05
         dy = (yr[1]-yr[0])*0.05
-        if dx<=0:
-            self.xlim = (0,1)
-        else:
-            self.xlim = (xr[0]-dx,xr[1]+dx)
-        if dy<=0:
-            self.ylim = (0,1)
-        else:
-            self.ylim = (yr[0]-dy,yr[1]+dy)
+        if x:
+            if dx<=0:
+                self.xlim = (0,1)
+            else:
+                self.xlim = (xr[0]-dx,xr[1]+dx)
+        if y:
+            if dy<=0:
+                self.ylim = (0,1)
+            else:
+                self.ylim = (yr[0]-dy,yr[1]+dy)
+
+    def has_image(self):
+        return len(self.images)>0
 
     @property
     def LTRB(self):
@@ -345,6 +368,7 @@ class AbstractGraph(panel.Panel):
         self._xtick = value
         value.ref = self
         value.lim = self.xlim
+        value.type = status.AxisType.X
 
     @property
     def ytick(self):
@@ -354,6 +378,7 @@ class AbstractGraph(panel.Panel):
         self._ytick = value
         value.ref = self
         value.lim = self.ylim
+        value.type = status.AxisType.Y
 
     @property
     def xscale(self):
@@ -362,6 +387,7 @@ class AbstractGraph(panel.Panel):
     def xscale(self,value):
         if isinstance(value,scale.AbstructScale):
             self.update()
+            self._xscale = value
             for line in self.lines+self.flines:
                 line.xscale = value
         else:
@@ -374,6 +400,7 @@ class AbstractGraph(panel.Panel):
     def yscale(self,value):
         if isinstance(value,scale.AbstructScale):
             self.update()
+            self._yscale = value
             for line in self.lines+self.flines:
                 line.yscale = value
         else:
@@ -386,6 +413,7 @@ class AbstractGraph(panel.Panel):
     def xyscale(self,value):
         if isinstance(value[0],scale.AbstructScale) and isinstance(value[1],scale.AbstructScale):
             self.update()
+            self._xscale,self._yscale = value
             for line in self.lines+self.flines:
                 line.xyscale = value
         else:
@@ -452,6 +480,9 @@ class Graph1Image(AbstractGraph):
         if self.image.data is not None:
             self.image.draw()
             self.image.flush(canvas)
+
+    def has_image(self):
+        return True
 
     def draw(self,canvas,xlim=None,ylim=None):
         super().draw(canvas,xlim,ylim)
@@ -561,8 +592,8 @@ class Graph1Line(AbstractGraph):
             self.line.draw(matrix,rect)
             self.line.flush(canvas)
 
-    def line_bounds(self):
-        return (self.line.xrange,self.line.yrange)
+    def has_image(self):
+        return False
 
     @property
     def data(self):
@@ -581,6 +612,7 @@ class Graph1Line(AbstractGraph):
     def xscale(self,value):
         if isinstance(value,scale.AbstructScale):
             self.update()
+            self._xscale = value
             self.line.xscale = value
         else:
             raise TypeError("xscale is only scale instance")
@@ -592,6 +624,7 @@ class Graph1Line(AbstractGraph):
     def yscale(self,value):
         if isinstance(value,scale.AbstructScale):
             self.update()
+            self._yscale = value
             self.line.yscale = value
         else:
             raise TypeError("yscale is only scale instance")
@@ -603,6 +636,7 @@ class Graph1Line(AbstractGraph):
     def xyscale(self,value):
         if isinstance(value[0],scale.AbstructScale) and isinstance(value[1],scale.AbstructScale):
             self.update()
+            self._xscale,self._yscale = value
             self.line.xyscale = value
         else:
             raise TypeError("xyscale is only scale instance")
@@ -612,7 +646,7 @@ class GraphColorBar(AbstractGraph):
         super().__init__(parent,rotate)
         del self.images
         del self.lines
-        self.line = item.Line()
+        self.line = item.Line4Histogram()
         self.image = item.Image()
         self.vminbutton = None
         self.vmaxbutton = None
@@ -629,6 +663,9 @@ class GraphColorBar(AbstractGraph):
         self._vlogscale = False
         self._xscale = scale.LinearScale()
 
+    def has_image(self):
+        return False
+
     @property
     def vlogscale(self):
         return self._vlogscale
@@ -639,6 +676,15 @@ class GraphColorBar(AbstractGraph):
         self.xscale = scale.Log10Scale() if value else scale.LinearScale()
 
     @property
+    def vscale(self):
+        return self.image.vscale
+    @vscale.setter
+    def vscale(self,value):
+        if isinstance(value,scale.AbstructScale):
+            self.update()
+            self.xscale = value
+
+    @property
     def xscale(self):
         return self._xscale
     @xscale.setter
@@ -646,9 +692,6 @@ class GraphColorBar(AbstractGraph):
         self.update()
         self._xscale = value
         self.line.set(xscale=self._xscale)
-
-    def line_bounds(self):
-        return (self.line.xrange,self.line.yrange)
 
     def _draw(self,recorder):
         self.draw_images(recorder)
@@ -794,6 +837,9 @@ class GraphColorBar(AbstractGraph):
             rot = 0 if self._devicerotate==status.RotateStatus.NONE else 1
             s,l = min(self.px,self.cx),max(self.px,self.cx)
             if s == l:
+                self.px = None
+                self.cx = None
+                self._capture_mouse ^= status.MouseStatus.RIGHT
                 return
             self.xlim = (s,l)
             self.px = None
@@ -859,13 +905,10 @@ class GraphColorBar(AbstractGraph):
             self.ref.update()
         self._capture_mouse = status.MouseStatus.NONE
 
-
     def OnMouseDClick(self,evt):
         if self.ref.image.data is not None:
             self.ref.image.auto_colorrange()
-            xmin,xmax = self.line.xrange
-            xr = xmax - xmin
-            self.xlim = (xmin-0.15*xr,xmax+0.15*xr)
+            self.autorange()
             self.update()
             self.ref.update()
             self.wx.draw()
@@ -899,11 +942,14 @@ class GraphTick(AbstractGraph):
         super().__init__(parent,status.RotateStatus.NONE)
         del self.images
         del self.lines
+        del self.flines
         self.tick = item.Ticks()
         self.direction = Direction
         self.font = item.Font(size=12)
         self.paint = skia.Paint(Color=skia.Color(0,0,0),AntiAlias=False,StrokeWidth=1,)
         self.tick_length = 5
+        self._ref = None
+        self._type = None
 
     @property
     def dip(self):
@@ -922,6 +968,26 @@ class GraphTick(AbstractGraph):
         self.tick.set_lim(*value)
         self.xlim = value
         self.ylim = value
+
+    @property
+    def ref(self):
+        return self._ref
+    @ref.setter
+    def ref(self,value):
+        if isinstance(value,AbstractGraph):
+            self._ref = value
+        else:
+            raise TypeError("tick.ref must be Graph")
+
+    @property
+    def type(self):
+        return self._type
+    @type.setter
+    def type(self,value):
+        if isinstance(value,status.AxisType):
+            self._type = value
+        else:
+            raise TypeError("tick.type must be status.AxisType")
 
     def _draw(self,recorder):
         self.draw_ticks(recorder)
@@ -976,3 +1042,37 @@ class GraphTick(AbstractGraph):
             tw = self.font.measureText(offset,paint=self.paint)
             tpos = (-tw+self.width,self.tick_length+2.1*self.font.getHeight()) if (1-rot) else (self.width-tw,-0.2*self.font.getHeight())
             canvas.drawTextBlob(blob,*tpos,self.paint)
+
+    def OnMouseDClick(self,evt):
+        if self.ref is not None:
+            if not isinstance(self.ref,GraphColorBar):
+                with dialog.AxisDialog(self,-1) as dlg:
+                    if dlg.ShowModal():
+                        if dlg.min >= dlg.max:
+                            return
+                        if self.type == status.AxisType.X:
+                            self.ref.xscale = dlg.scale
+                            self.ref.xlim = (dlg.min,dlg.max)
+                        else:
+                            self.ref.yscale = dlg.scale
+                            self.ref.ylim = (dlg.min,dlg.max)
+                        self.ref.update()
+                        self.wx.Refresh()
+            else:
+                with dialog.ColorBarAxisDialog(self,-1) as dlg:
+                    if dlg.ShowModal():
+                        if dlg.min >= dlg.max:
+                            return
+                        if dlg.vmin > dlg.vmax:
+                            return
+                        if self.type == status.AxisType.X:
+                            self.ref.xlim = (dlg.min,dlg.max)
+                        else:
+                            self.ref.ylim = (dlg.min,dlg.max)
+                        self.ref.ref.vscale = dlg.scale
+                        self.ref.ref.set(vmin=dlg.vmin,vmax=dlg.vmax)
+                        self.ref.update()
+                        self.wx.Refresh()
+
+    def OnMouseLDClick(self,evt):
+        self.OnMouseDClick(evt)
