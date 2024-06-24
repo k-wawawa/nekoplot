@@ -14,7 +14,7 @@ from . import utility
 from . import scale
 from . import dialog
 
-class AbstractGraph(panel.Panel):
+class Graph(panel.Panel):
     def __init__(self,parent,rotate=status.RotateStatus.NONE):
         super().__init__(parent)
         self._update = status.GraphStatus.UPDATE
@@ -37,7 +37,10 @@ class AbstractGraph(panel.Panel):
         self._capture_mouse = status.MouseStatus.NONE
 
     def _draw(self,recorder):
-        raise NotImplementedError
+        self.draw_images(recorder)
+        self.draw_lines(recorder)
+        self.draw_flines(recorder)
+        self.draw_annotation(recorder)
 
     @property
     def flipx(self):
@@ -272,6 +275,16 @@ class AbstractGraph(panel.Panel):
             else:
                 self.ylim = (yr[0]-dy,yr[1]+dy)
 
+    def append(self,itm):
+        if isinstance(itm,item.Line):
+            self.lines.append(itm)
+        elif isinstance(itm,item.Image):
+            self.images.append(itm)
+        elif isinstance(itm,item.FLine):
+            self.flines.append(itm)
+        else:
+            raise AttributeError("Line, FLine or Image item only")
+
     def has_image(self):
         return len(self.images)>0
 
@@ -439,25 +452,7 @@ class AbstractGraph(panel.Panel):
         else:
             self._rubber_rect = skia.Rect(*value)
 
-class Graph(AbstractGraph):
-
-    def _draw(self,recorder):
-        self.draw_images(recorder)
-        self.draw_lines(recorder)
-        self.draw_flines(recorder)
-        self.draw_annotation(recorder)
-
-    def append(self,itm):
-        if isinstance(itm,item.Line):
-            self.lines.append(itm)
-        elif isinstance(itm,item.Image):
-            self.images.append(itm)
-        elif isinstance(itm,item.FLine):
-            self.flines.append(itm)
-        else:
-            raise AttributeError("Line, FLine or Image item only")
-
-class Graph1Image(AbstractGraph):
+class Graph1Image(Graph):
     def __init__(self,parent,rotate=status.RotateStatus.NONE):
         super().__init__(parent,rotate)
         del self.images
@@ -577,7 +572,7 @@ class Graph1Image(AbstractGraph):
     def histogram(self):
         return self.image._histogram
 
-class Graph1Line(AbstractGraph):
+class Graph1Line(Graph):
     def __init__(self,parent,rotate=status.RotateStatus.NONE):
         super().__init__(parent,rotate)
         del self.images
@@ -641,7 +636,7 @@ class Graph1Line(AbstractGraph):
         else:
             raise TypeError("xyscale is only scale instance")
 
-class GraphColorBar(AbstractGraph):
+class GraphColorBar(Graph):
     def __init__(self,parent,rotate=status.RotateStatus.NONE):
         super().__init__(parent,rotate)
         del self.images
@@ -936,7 +931,7 @@ class GraphColorBar(AbstractGraph):
         self.wx.draw()
         self.wx.Refresh()
 
-class GraphTick(AbstractGraph):
+class GraphTick(Graph):
     def __init__(self,parent,Direction=status.Direction.LtoR):
         #rot = status.RotateStatus.NONE if Direction in [status.Direction.LtoR,status.Direction.RtoL] else status.RotateStatus.FLIP
         super().__init__(parent,status.RotateStatus.NONE)
@@ -974,7 +969,7 @@ class GraphTick(AbstractGraph):
         return self._ref
     @ref.setter
     def ref(self,value):
-        if isinstance(value,AbstractGraph):
+        if isinstance(value,Graph):
             self._ref = value
         else:
             raise TypeError("tick.ref must be Graph")

@@ -80,6 +80,10 @@ class AxisDialog(wx.Dialog):
         llayout.AddSpacer(5)
         llayout.Add(self.axmaxctrl,0,wx.ALIGN_CENTER_VERTICAL)
         layout.Add(llayout,0,wx.ALIGN_CENTER|wx.LEFT|wx.RIGHT,border=10)
+        go = wx.Button(self,-1,"auto adjust")
+        go.Bind(wx.EVT_BUTTON,self.OnGo_axis)
+        layout.AddSpacer(5)
+        layout.Add(go,0,wx.ALIGN_CENTER)
 
         layout.AddSpacer(10)
         layout.Add(wx.StaticLine(self,-1,size=(-1,2)),0,wx.EXPAND)
@@ -117,6 +121,16 @@ class AxisDialog(wx.Dialog):
         else:
             self.axis.ref.yscale = self.scale
             self.axis.ref.ylim = (self.min,self.max)
+        self.axis.ref.update()
+        self.axis.wx.Refresh()
+        wx.Yield()
+
+    def OnGo_axis(self,event):
+        self.axis.ref.autorange()
+        axmin,axmax = self.axis.ref.xlim if self.axis.type == status.AxisType.X else self.axis.ref.ylim
+        scale = self.axis.ref.xscale if self.axis.type == status.AxisType.X else self.axis.ref.yscale
+        self.axminctrl.Value = self.scale(scale.inv(axmin))
+        self.axmaxctrl.Value = self.scale(scale.inv(axmax))
         self.axis.ref.update()
         self.axis.wx.Refresh()
         wx.Yield()

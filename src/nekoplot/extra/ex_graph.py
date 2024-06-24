@@ -14,7 +14,7 @@ from .. import graph
 from .. import scale
 from . import ex_item
 
-class GraphDetector(graph.AbstractGraph):
+class GraphDetector(graph.Graph):
     def __init__(self,parent,rotate=status.RotateStatus.NONE):
         super().__init__(parent,rotate)
         del self.images
