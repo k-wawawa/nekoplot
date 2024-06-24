@@ -70,7 +70,7 @@ class GLPanel(glcanvas.GLCanvas):
         self.Bind(wx.EVT_ENTER_WINDOW, self.on_mouse_enter)
         self.Bind(wx.EVT_LEAVE_WINDOW, self.on_mouse_leave)
 
-        self.Bind(wx.EVT_CHAR, self.on_keyboard)
+        self.Bind(wx.EVT_KEY_DOWN, self.on_keyboard)
         self.Bind(wx.EVT_KEY_UP, self.on_keyboard_up)
 
         # self.Bind(wx.EVT_MOUSE_CAPTURE_CHANGED, self.panel._OnCaptureLost)
@@ -122,54 +122,65 @@ class GLPanel(glcanvas.GLCanvas):
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnLeave(evt)
     def on_mouse_left_down(self,e):
+        self.SetFocus()
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseLDown(evt)
     def on_mouse_left_up(self,e):
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseLUp(evt)
     def on_mouse_left_dclick(self,e):
+        self.SetFocus()
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseLDClick(evt)
     def on_mouse_middle_down(self,e):
+        self.SetFocus()
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseMDown(evt)
     def on_mouse_middle_up(self,e):
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseMUp(evt)
     def on_mouse_middle_dclick(self,e):
+        self.SetFocus()
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseMDClick(evt)
     def on_mouse_right_down(self,e):
+        self.SetFocus()
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseRDown(evt)
     def on_mouse_right_up(self,e):
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseRUp(evt)
     def on_mouse_right_dclick(self,e):
+        self.SetFocus()
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseRDClick(evt)
     def on_mouse_aux1_down(self,e):
+        self.SetFocus()
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseAUX1Down(evt)
     def on_mouse_aux1_up(self,e):
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseAUX1Up(evt)
     def on_mouse_aux1_dclick(self,e):
+        self.SetFocus()
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseAUX1DClick(evt)
     def on_mouse_aux2_down(self,e):
+        self.SetFocus()
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseAUX2Down(evt)
     def on_mouse_aux2_up(self,e):
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseAUX2Up(evt)
     def on_mouse_aux2_dclick(self,e):
+        self.SetFocus()
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseAUX2DClick(evt)
     def on_mouse_motion(self,e):
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseMotion(evt)
     def on_mouse_wheel(self,e):
+        self.SetFocus()
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseWheel(evt)
 
@@ -637,12 +648,6 @@ class Panel:
         pass
 
     def _OnKeyboard(self,event):
-        if self.root:
-            pos = wx.GetMouseState()
-            x,y = self.wx.ScreenToClient(pos.x,pos.y)
-            event.x = x
-            event.y = y
-            event.SetKey(event)
         evt = event.Clone()
         evt = self.event2child(event)
         evt.KeyStr = event.KeyStr
@@ -674,7 +679,7 @@ class Panel:
         # evt = self.event2child(event)
         evt = event.Clone()
         for child in self.children:
-            if child.contains(evt.X,evt.Y):
+            if child.contains(evt.x,evt.y):
                 child._OnKeyboardUp(evt)
         if not evt.Skipped:
             self.OnKeyboardUp(event)

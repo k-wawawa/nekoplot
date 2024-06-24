@@ -14,7 +14,7 @@ from .. import graph
 from .. import scale
 from . import ex_item
 
-class GraphDetector(graph.AbstractGraph):
+class GraphDetector(graph.Graph):
     def __init__(self,parent,rotate=status.RotateStatus.NONE):
         super().__init__(parent,rotate)
         del self.images
@@ -26,6 +26,9 @@ class GraphDetector(graph.AbstractGraph):
         self.font = item.Font(size=12)
         self.paint = skia.Paint(Color=skia.Color(0,0,0),AntiAlias=True)
         self._vlogscale = False
+
+    def has_image(self):
+        return True
 
     def set(self,**dargs):
         self._update |= status.GraphStatus.UPDATE
@@ -163,3 +166,35 @@ class GraphDetector(graph.AbstractGraph):
         self.image.set(vscale=scale.Log10Scale() if value else scale.LinearScale())
         if self.colorbar is not None:
             self.colorbar.vlogscale = value
+
+    @property
+    def vscale(self):
+        return self.image.vscale
+    @vscale.setter
+    def vscale(self,value):
+        if isinstance(value,scale.AbstructScale):
+            self.update()
+            self.image.set(vscale=value)
+            if self.colorbar is not None:
+                self.colorbar.vscale = value
+
+    @property
+    def xscale(self):
+        return self._xscale
+    @xscale.setter
+    def xscale(self,value):
+        pass
+
+    @property
+    def yscale(self):
+        return self._yscale
+    @yscale.setter
+    def yscale(self,value):
+        pass
+
+    @property
+    def xyscale(self):
+        return self._xscale
+    @xyscale.setter
+    def xyscale(self,value):
+        pass
