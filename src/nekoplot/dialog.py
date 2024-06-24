@@ -126,7 +126,8 @@ class AxisDialog(wx.Dialog):
         wx.Yield()
 
     def OnGo_axis(self,event):
-        self.axis.ref.autorange()
+        x,y = (True,False) if self.axis.type == status.AxisType.X else (False,True)
+        self.axis.ref.autorange(x,y)
         axmin,axmax = self.axis.ref.xlim if self.axis.type == status.AxisType.X else self.axis.ref.ylim
         scale = self.axis.ref.xscale if self.axis.type == status.AxisType.X else self.axis.ref.yscale
         self.axminctrl.Value = self.scale(scale.inv(axmin))
@@ -307,7 +308,8 @@ class ColorBarAxisDialog(wx.Dialog):
         self.axis.ref.ref.update()
 
     def OnGo_axis(self,event):
-        self.axis.ref.autorange()
+        x,y = (True,False) if self.axis.type == status.AxisType.X else (False,True)
+        self.axis.ref.autorange(x,y)
         axmin,axmax = self.axis.ref.xlim if self.axis.type == status.AxisType.X else self.axis.ref.ylim
         scale = self.axis.ref.xscale if self.axis.type == status.AxisType.X else self.axis.ref.yscale
         self.axminctrl.Value = self.scale(scale.inv(axmin))
