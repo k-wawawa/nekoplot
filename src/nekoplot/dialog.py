@@ -116,10 +116,12 @@ class AxisDialog(wx.Dialog):
             wx.MessageBox(f"invalid data")
             return
         if self.axis.type == status.AxisType.X:
-            self.axis.ref.xscale = self.scale
+            if type(self.axis.ref.xscale) is not type(self.scale):
+                self.axis.ref.xscale = self.scale
             self.axis.ref.xlim = (self.min,self.max)
         else:
-            self.axis.ref.yscale = self.scale
+            if type(self.axis.ref.yscale) is not type(self.scale):
+                self.axis.ref.yscale = self.scale
             self.axis.ref.ylim = (self.min,self.max)
         self.axis.ref.update()
         self.axis.wx.Refresh()
@@ -274,7 +276,8 @@ class ColorBarAxisDialog(wx.Dialog):
         if not np.isfinite([self.min,self.max,self.vmin,self.vmax]).all():
             wx.MessageBox(f"invalid data")
             return
-        self.axis.ref.ref.vscale = self.scale_cb.GetClientData(self.scale_cb.Selection)
+        if type(self.axis.ref.ref.vscale) is not type(self.scale_cb.GetClientData(self.scale_cb.Selection)):
+            self.axis.ref.ref.vscale = self.scale_cb.GetClientData(self.scale_cb.Selection)
         if self.axis.type == status.AxisType.X:
             self.axis.ref.xlim = (self.min,self.max)
         else:

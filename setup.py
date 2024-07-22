@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 NAME = 'nekoplot'
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 
 setup(
     name=NAME,
@@ -13,7 +13,7 @@ setup(
         'wxPython',
         'skia-python',
         'opencv-python',
-        'numpy'
+        'numpy<2'
     ],
     license='MIT',
     packages=find_packages(where='src'),

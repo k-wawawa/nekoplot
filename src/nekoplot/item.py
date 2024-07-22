@@ -20,7 +20,7 @@ class LineType(Enum):
     DASH = skia.DashPathEffect.Make([10.,10.],0.)
     DOT_DASH = skia.DashPathEffect.Make([10.,2.5,2.5,2.5],0.)
     DDOT_DASH = skia.DashPathEffect.Make([10.,2.5,2.5,2.5,2.5,2.5],0.)
-    DOT = skia.DashPathEffect.Make([5.,5.],0.)
+    DOT = skia.DashPathEffect.Make([2.,2.],0.)
 
 class MarkerType(Enum):
     NONE = skia.Paint.kButt_Cap
@@ -117,6 +117,8 @@ class Line:
                 self.clear()
             else:
                 self.data = dargs["data"]
+        if "label" in dargs:
+            self.label = dargs.get("label",self.label)
         if "linecolor" in dargs:
             self.linecolor = dargs.get("linecolor",self.linecolor)
         if "linetype" in dargs:
@@ -347,7 +349,6 @@ class Line:
 
     def draw(self,matrix,rect=None):
         # lineとかmarkerとか書くやつ
-        # ここがおかしい？？？？？？mat==self.matのはんてい
         if self._update == status.LineStatus.NONE and (tuple(matrix.get9()) == tuple(self.matrix.get9())):
             return
         if self._data is None:
@@ -373,15 +374,17 @@ class FLine():
         self._data = None
         self._label = "Line"
         self._linePaint = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
-        self.linecolor = skia.Color4f(1,0,0,1.0)
-        self._linetype = LineType.NONE
-        self.linetype = LineType.SOLID.name
+        self._linecolor = skia.Color4f(1,0,0,1.0)
+        self._linetype = LineType.SOLID
+        self._linePaint = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
+        self._linePaint.setColor4f(self.linecolor.skia4f)
         self._lpath = skia.Path()
         self.xrange = (np.inf,-np.inf)
         self.yrange = (np.inf,-np.inf)
         self._scaled_data = None
         self._xscale = lambda x:x
         self._yscale = lambda x:x
+        self.layer = None
 
     def clear(self):
         self._update &= status.LineStatus.NONE
@@ -390,6 +393,8 @@ class FLine():
         self._lpath = skia.Path()
         self.xrange = (np.inf,-np.inf)
         self.yrange = (np.inf,-np.inf)
+        if self.layer is not None:
+            self.layer.update()
 
     @property
     def data(self):
@@ -433,6 +438,8 @@ class FLine():
                     else:
                         pass
         self._update = status.LineStatus.DATA
+        if self.layer is not None:
+            self.layer.update()
 
     @property
     def label(self):
@@ -447,6 +454,8 @@ class FLine():
                 self.clear()
             else:
                 self.data = dargs["data"]
+        if "label" in dargs:
+            self.label = dargs.get("label",self.label)
         if "linecolor" in dargs:
             self.linecolor = dargs.get("linecolor",self.linecolor)
         if "linetype" in dargs:
@@ -461,49 +470,61 @@ class FLine():
         return self._linetype
     @linetype.setter
     def linetype(self,value):
-        if value in LineType._member_names_:
-            if value == "SOLID":
-                self._linetype = LineType[value]
-                p = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
-                p.setColor4f(self.linecolor.skia4f)
-                self._linePaint = p
-            elif value == "NONE":
-                self._linetype = LineType[value]
-                p = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
-                p.setColor4f(self.linecolor.skia4f)
-                self._linePaint = p
+        try:
+            if value in LineType._member_names_:
+                if value == "SOLID":
+                    self._linetype = LineType[value]
+                    p = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
+                    p.setColor4f(self.linecolor.skia4f)
+                    self._linePaint = p
+                elif value == "NONE":
+                    self._linetype = LineType[value]
+                    p = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
+                    p.setColor4f(self.linecolor.skia4f)
+                    self._linePaint = p
+                else:
+                    self._linetype = LineType[value]
+                    self._linePaint.setPathEffect(LineType[value].value)
+            elif value in LineType:
+                if value == LineType.SOLID:
+                    self._linetype = value
+                    p = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
+                    p.setColor4f(self.linecolor.skia4f)
+                    self._linePaint = p
+                elif value == LineType.NONE:
+                    self._linetype = LineType[value]
+                    p = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
+                    p.setColor4f(self.linecolor.skia4f)
+                    self._linePaint = p
+                else:
+                    self._linePaint.setPathEffect(value.value)
             else:
-                self._linetype = LineType[value]
-                self._linePaint.setPathEffect(LineType[value].value)
-        elif value in LineType:
-            if value == LineType.SOLID:
-                self._linetype = value
-                p = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
-                p.setColor4f(self.linecolor.skia4f)
-                self._linePaint = p
-            elif value == LineType.NONE:
-                self._linetype = LineType[value]
-                p = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
-                p.setColor4f(self.linecolor.skia4f)
-                self._linePaint = p
-            else:
-                self._linePaint.setPathEffect(value.value)
+                raise RuntimeWarning("line type warning")
+        except:
+            raise
         else:
-            raise RuntimeWarning("line type warning")
+            if self.layer is not None:
+                self.layer.update()
 
     @property
     def linecolor(self):
         return color.Color(*self._linePaint.getColor4f())
     @linecolor.setter
     def linecolor(self,value):
-        if isinstance(value,int):
-            self._linePaint.setColor(value)
-        elif isinstance(value,skia.Color4f):
-            self._linePaint.setColor4f(value)
-        elif isinstance(value,color.Color):
-            self._linePaint.setColor4f(value.skia4f)
+        try:
+            if isinstance(value,int):
+                self._linePaint.setColor(value)
+            elif isinstance(value,skia.Color4f):
+                self._linePaint.setColor4f(value)
+            elif isinstance(value,color.Color):
+                self._linePaint.setColor4f(value.skia4f)
+            else:
+                raise RuntimeWarning("line color warning")
+        except:
+            raise
         else:
-            raise RuntimeWarning("line color warning")
+            if self.layer is not None:
+                self.layer.update()
 
     @property
     def xscale(self):
@@ -532,6 +553,8 @@ class FLine():
                     else:
                         pass
                 self._update = status.LineStatus.DATA
+                if self.layer is not None:
+                    self.layer.update()
         else:
             raise RuntimeWarning("numpy array callable only")
 
@@ -562,6 +585,8 @@ class FLine():
                     else:
                         pass
                 self._update = status.LineStatus.DATA
+                if self.layer is not None:
+                    self.layer.update()
         else:
             raise RuntimeWarning("numpy array callable only")
 
@@ -593,6 +618,8 @@ class FLine():
                     else:
                         pass
                 self._update = status.LineStatus.DATA
+                if self.layer is not None:
+                    self.layer.update()
         else:
             raise RuntimeWarning("2-Tuple of numpy array callable only")
 
@@ -602,6 +629,7 @@ class FLine():
     def flush(self,canvas):
         # canvas にぶち込む
         paint = skia.Paint(self._linePaint)
+        # paint.setAntiAlias(True)
         if self.linetype != LineType.NONE:
             canvas.drawPath(self._lpath,paint)
 

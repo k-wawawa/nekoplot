@@ -263,8 +263,8 @@ class Panel:
         self._background = color.Color(0,0,0,0)
         if isinstance(parent,(GLPanel,ImagePanel)):
             self.parent = None
-            self.wx = parent
-            self.wx.panel = self
+            self._wx = parent
+            self._wx.panel = self
             self._left,self._top,self._width,self._height = (0,0,*self.wx.Size)
         elif isinstance(parent,Panel):
             self.parent = parent
