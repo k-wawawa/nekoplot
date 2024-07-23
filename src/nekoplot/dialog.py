@@ -116,17 +116,20 @@ class AxisDialog(wx.Dialog):
             wx.MessageBox(f"invalid data")
             return
         if self.axis.type == status.AxisType.X:
-            self.axis.ref.xscale = self.scale
+            if type(self.axis.ref.xscale) is not type(self.scale):
+                self.axis.ref.xscale = self.scale
             self.axis.ref.xlim = (self.min,self.max)
         else:
-            self.axis.ref.yscale = self.scale
+            if type(self.axis.ref.yscale) is not type(self.scale):
+                self.axis.ref.yscale = self.scale
             self.axis.ref.ylim = (self.min,self.max)
         self.axis.ref.update()
         self.axis.wx.Refresh()
         wx.Yield()
 
     def OnGo_axis(self,event):
-        self.axis.ref.autorange()
+        x,y = (True,False) if self.axis.type == status.AxisType.X else (False,True)
+        self.axis.ref.autorange(x,y)
         axmin,axmax = self.axis.ref.xlim if self.axis.type == status.AxisType.X else self.axis.ref.ylim
         scale = self.axis.ref.xscale if self.axis.type == status.AxisType.X else self.axis.ref.yscale
         self.axminctrl.Value = self.scale(scale.inv(axmin))
@@ -273,7 +276,8 @@ class ColorBarAxisDialog(wx.Dialog):
         if not np.isfinite([self.min,self.max,self.vmin,self.vmax]).all():
             wx.MessageBox(f"invalid data")
             return
-        self.axis.ref.ref.vscale = self.scale_cb.GetClientData(self.scale_cb.Selection)
+        if type(self.axis.ref.ref.vscale) is not type(self.scale_cb.GetClientData(self.scale_cb.Selection)):
+            self.axis.ref.ref.vscale = self.scale_cb.GetClientData(self.scale_cb.Selection)
         if self.axis.type == status.AxisType.X:
             self.axis.ref.xlim = (self.min,self.max)
         else:
@@ -307,7 +311,8 @@ class ColorBarAxisDialog(wx.Dialog):
         self.axis.ref.ref.update()
 
     def OnGo_axis(self,event):
-        self.axis.ref.autorange()
+        x,y = (True,False) if self.axis.type == status.AxisType.X else (False,True)
+        self.axis.ref.autorange(x,y)
         axmin,axmax = self.axis.ref.xlim if self.axis.type == status.AxisType.X else self.axis.ref.ylim
         scale = self.axis.ref.xscale if self.axis.type == status.AxisType.X else self.axis.ref.yscale
         self.axminctrl.Value = self.scale(scale.inv(axmin))

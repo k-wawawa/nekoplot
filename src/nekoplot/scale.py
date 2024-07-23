@@ -32,10 +32,12 @@ class Log10Scale(AbstructScale):
         return "Log10"
 
     def __call__(self,value):
-        return np.log10(value)
+        with np.errstate(all="ignore"):
+            return np.log10(value)
 
     def inv(self,value):
-        return np.power(10,value)
+        with np.errstate(all="ignore"):
+            return np.power(10,value)
 
 class LnScale(AbstructScale):
     def __init__(self):
@@ -45,10 +47,12 @@ class LnScale(AbstructScale):
         return "Ln"
 
     def __call__(self,value):
-        return np.log(value)
+        with np.errstate(all="ignore"):
+            return np.log(value)
 
     def inv(self,value):
-        return np.exp(value)
+        with np.errstate(all="ignore"):
+            return np.exp(value)
 
 class ASinhScale(AbstructScale):
     def __init__(self):
@@ -58,10 +62,12 @@ class ASinhScale(AbstructScale):
         return "ArcSinh"
 
     def __call__(self,value):
-        return np.arcsinh(value)
+        with np.errstate(all="ignore"):
+            return np.arcsinh(value)
 
     def inv(self,value):
-        return np.sinh(value)
+        with np.errstate(all="ignore"):
+            return np.sinh(value)
 
 class ASinh10Scale(AbstructScale):
     L10 = np.array(np.log(10))
@@ -72,7 +78,9 @@ class ASinh10Scale(AbstructScale):
         return "ArcSinh_Base10"
 
     def __call__(self,value):
-        return np.arcsinh(value)/self.L10
+        with np.errstate(all="ignore"):
+            return np.arcsinh(value)/self.L10
 
     def inv(self,value):
-        return np.sinh(self.L10*value)
+        with np.errstate(all="ignore"):
+            return np.sinh(self.L10*value)

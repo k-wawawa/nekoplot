@@ -59,6 +59,47 @@ class Color:
             raise RuntimeError("Color(red:int, green:int, blue:int, alpha:int) r,g,b,a in [0,255]")
         return Color(r/255.,g/255.,b/255.,a/255.)
 
+    def fromHSV(h=0,s=1,v=1,a=1.0):
+        s = min(s,v)
+        if s == 0:
+            return Color(v,v,v)
+        else:
+            hh = (h%360)/60
+            x = s*(1-abs((hh%2) -1))
+            y = v-s
+            if 0<=hh<1:
+                r,g,b = y+s,y+x,y
+            elif 1<=hh<2:
+                r,g,b = y+x,y+s,y
+            elif 2<=hh<3:
+                r,g,b = y,y+s,y+x
+            elif 3<=hh<4:
+                r,g,b = y,y+x,y+s
+            elif 4<=hh<5:
+                r,g,b = y+x,y,y+s
+            elif 5<=hh<6:
+                r,g,b = y+s,y,y+x
+            else:
+                raise RuntimeError("Cant convert hsv to color")
+            return Color(r,g,b,a)
+
+    def toHSV(self):
+        v = max(self.red,self.blue,self.green)
+        vv = min(self.red,self.blue,self.green)
+        s = v - vv
+        if s == 0:
+            h = 0
+        if self.blue==vv:
+            h = 60*(self.green-self.red)/s + 60
+        elif self.red==vv:
+            h = 60*(self.blue-self.green)/s + 180
+        elif self.green==vv:
+            h = 60*(self.red-self.blue)/s + 300
+        else:
+            raise RuntimeError("Cant convert color to hsv")
+        h = h%360
+        return (h,s,v,self.alpha)
+
     def __str__(self):
         return self.colorcode
 

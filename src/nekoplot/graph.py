@@ -1046,10 +1046,12 @@ class GraphTick(Graph):
                         if dlg.min >= dlg.max:
                             return
                         if self.type == status.AxisType.X:
-                            self.ref.xscale = dlg.scale
+                            if type(dlg.scale) is not type(self.ref.xscale):
+                                self.ref.xscale = dlg.scale
                             self.ref.xlim = (dlg.min,dlg.max)
                         else:
-                            self.ref.yscale = dlg.scale
+                            if type(dlg.scale) is not type(self.ref.yscale):
+                                self.ref.yscale = dlg.scale
                             self.ref.ylim = (dlg.min,dlg.max)
                         self.ref.update()
                         self.wx.Refresh()
@@ -1064,7 +1066,8 @@ class GraphTick(Graph):
                             self.ref.xlim = (dlg.min,dlg.max)
                         else:
                             self.ref.ylim = (dlg.min,dlg.max)
-                        self.ref.ref.vscale = dlg.scale
+                        if type(dlg.scale) is not type(self.ref.ref.vscale):
+                            self.ref.ref.vscale = dlg.scale
                         self.ref.ref.set(vmin=dlg.vmin,vmax=dlg.vmax)
                         self.ref.update()
                         self.wx.Refresh()
