@@ -831,6 +831,7 @@ class Image():
         self._colorbar = None
         self._vscale = lambda x:x
         self._scaled_data = None
+        self._extent = None
 
     def clear(self):
         self._update &= status.ImageStatus.NONE
@@ -856,6 +857,9 @@ class Image():
             self.vmax = self.vmin
         if "vscale" in dargs:
             self.vscale = dargs.get("vscale",self.vscale)
+        if "extent" in dargs:
+            self.extent = dargs.get("extent",self.extent)
+            dargs.pop("extent")
         if "colormap" in dargs:
             self.colormap = dargs.get("colormap")
             if self.colorbar is not None:
@@ -905,26 +909,36 @@ class Image():
         tmp = self._scaled_data.copy()
         vmin,vmax = self.vscale(self.vmin),self.vscale(self.vmax)
         if vmin==vmax:
-            tmp[np.isnan(tmp)] = vmin
-            small = tmp<=vmin
-            large = tmp>vmax
-            tmp[small] = 0
-            tmp[large] = 255
+            mask = np.isnan(tmp)
+            tmp = np.where(tmp>vmin,255,0)
+            # tmp[np.isnan(tmp)] = vmin
+            # small = tmp<=vmin
+            # large = tmp>vmax
+            # tmp[small] = 0
+            # tmp[large] = 255
         else:
             d = 255./(vmax-vmin)
+            mask = np.isnan(tmp)
             tmp[np.isnan(tmp)] = vmin
-            small = tmp<vmin
-            large = tmp>vmax
-            tmp[small] = vmin
-            tmp[large] = vmax
-            tmp -= vmin
-            tmp *= d
+            tmp = d*(np.clip(tmp,vmin,vmax)-vmin)
+            # tmp[np.isnan(tmp)] = vmin
+            # small = tmp<vmin
+            # large = tmp>vmax
+            # tmp[small] = vmin
+            # tmp[large] = vmax
+            # tmp -= vmin
+            # tmp *= d
         tmp = self.colormap.apply(tmp).copy()
         self.img = skia.Image.fromarray(tmp,skia.ColorType.kRGBA_8888_ColorType)
         self._update &= status.ImageStatus.NONE
 
     def flush(self,canvas):
-        canvas.drawImage(self.img,0,0)
+        if (self.extent is not None):
+            if (self.img is not None):
+                irct = skia.IRect.MakeWH(self.img.width(),self.img.height())
+                canvas.drawImageRect(self.img,irct,self.extent)
+        else:
+            canvas.drawImage(self.img,0,0)
 
     @property
     def colorbar(self):
@@ -952,6 +966,13 @@ class Image():
             self._update |= status.ImageStatus.VALUE
         else:
             raise RuntimeWarning("numpy array callable only")
+
+    @property
+    def extent(self):
+        return self._extent
+    @extent.setter
+    def extent(self,value):
+        self._extent = skia.Rect.MakeLTRB(*value)
 
 class Fonts():
     segoe = skia.Typeface.MakeFromName("Segoe UI")

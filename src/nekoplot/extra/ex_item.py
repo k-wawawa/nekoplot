@@ -31,6 +31,7 @@ class DetectorImage():
         self._mask_alpha = 0.5
         self._mask_color = color.ColorList["red"]
         self._colorbar = None
+        self._extent = None
 
     @property
     def mask_color(self):
@@ -101,6 +102,9 @@ class DetectorImage():
             self.vmax = self.vmin
         if "vscale" in dargs:
             self.vscale = dargs.get("vscale",self.vscale)
+        if "extent" in dargs:
+            self.extent = dargs.get("extent",self.extent)
+            dargs.pop("extent")
         if "colormap" in dargs:
             self.colormap = dargs.get("colormap")
             if self.colorbar is not None:
@@ -181,20 +185,25 @@ class DetectorImage():
         tmp = self._scaled_data.copy()
         vmin,vmax = self.vscale(self.vmin),self.vscale(self.vmax)
         if vmax == vmin:
-            tmp[np.isnan(tmp)] = vmin
-            small = tmp<=vmin
-            large = tmp>vmax
-            tmp[small] = 0
-            tmp[large] = 255
+            mask = np.isnan(tmp)
+            tmp = np.where(tmp>vmin,255,0)
+            # tmp[np.isnan(tmp)] = vmin
+            # small = tmp<=vmin
+            # large = tmp>vmax
+            # tmp[small] = 0
+            # tmp[large] = 255
         else:
             d = 255./(vmax-vmin)
+            mask = np.isnan(tmp)
             tmp[np.isnan(tmp)] = vmin
-            small = tmp<vmin
-            large = tmp>vmax
-            tmp[small] = vmin
-            tmp[large] = vmax
-            tmp -= vmin
-            tmp *= d
+            tmp = d*(np.clip(tmp,vmin,vmax)-vmin)
+            # tmp[np.isnan(tmp)] = vmin
+            # small = tmp<vmin
+            # large = tmp>vmax
+            # tmp[small] = vmin
+            # tmp[large] = vmax
+            # tmp -= vmin
+            # tmp *= d
         tmp = self.colormap.apply(tmp).copy()
         self.img = skia.Image.fromarray(tmp,skia.ColorType.kRGBA_8888_ColorType)
         self._update &= status.ImageStatus.NONE
@@ -239,9 +248,16 @@ class DetectorImage():
         self.draw_mask_draw()
 
     def flush(self,canvas):
-        canvas.drawImage(self.img,0,0)
-        canvas.drawImage(self.mask_img,0,0,skia.Paint(Alphaf=self.mask_alpha))
-        canvas.drawImage(self.mask_draw_img,0,0,skia.Paint(Alphaf=self.mask_alpha))
+        if (self.extent is not None):
+            if (self.img is not None):
+                irct = skia.IRect.MakeWH(self.img.width(),self.img.height())
+                canvas.drawImageRect(self.img,irct,self.extent)
+                canvas.drawImageRect(self.mask_img,irct,self.extent,skia.Paint(Alphaf=self.mask_alpha))
+                canvas.drawImageRect(self.mask_draw_img,irct,self.extent,skia.Paint(Alphaf=self.mask_alpha))
+        else:
+            canvas.drawImage(self.img,0,0)
+            canvas.drawImage(self.mask_img,0,0,skia.Paint(Alphaf=self.mask_alpha))
+            canvas.drawImage(self.mask_draw_img,0,0,skia.Paint(Alphaf=self.mask_alpha))
 
     @property
     def colorbar(self):
@@ -269,3 +285,13 @@ class DetectorImage():
             self._update |= status.ImageStatus.VALUE
         else:
             raise RuntimeWarning("numpy array callable only")
+
+    @property
+    def extent(self):
+        return self._extent
+    @extent.setter
+    def extent(self,value):
+        if value is None:
+            self._extent = None
+        else:
+            self._extent = skia.Rect.MakeLTRB(*value)

@@ -37,6 +37,7 @@ class GLPanel(glcanvas.GLCanvas):
         self._resizing = False
         self.glBG = color.ColorList["white"]
         self._update = None
+        self.dragging = event.Dragging.NONE
 
 # いろいろなイベント
         self.Bind(wx.EVT_SIZE, self.on_size)
@@ -122,60 +123,75 @@ class GLPanel(glcanvas.GLCanvas):
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnLeave(evt)
     def on_mouse_left_down(self,e):
-        self.SetFocus()
-        evt = event.MouseEvent.fromWx(e)
-        self.panel._OnMouseLDown(evt)
+        if self.capture(event.Dragging.LEFT):
+            self.SetFocus()
+            evt = event.MouseEvent.fromWx(e)
+            self.panel._OnMouseLDown(evt)
     def on_mouse_left_up(self,e):
+        self.release(event.Dragging.LEFT)
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseLUp(evt)
     def on_mouse_left_dclick(self,e):
-        self.SetFocus()
-        evt = event.MouseEvent.fromWx(e)
-        self.panel._OnMouseLDClick(evt)
+        if self.capture(event.Dragging.LEFT):
+            self.SetFocus()
+            evt = event.MouseEvent.fromWx(e)
+            self.panel._OnMouseLDClick(evt)
     def on_mouse_middle_down(self,e):
-        self.SetFocus()
-        evt = event.MouseEvent.fromWx(e)
-        self.panel._OnMouseMDown(evt)
+        if self.capture(event.Dragging.MIDDLE):
+            self.SetFocus()
+            evt = event.MouseEvent.fromWx(e)
+            self.panel._OnMouseMDown(evt)
     def on_mouse_middle_up(self,e):
+        self.release(event.Dragging.MIDDLE)
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseMUp(evt)
     def on_mouse_middle_dclick(self,e):
-        self.SetFocus()
-        evt = event.MouseEvent.fromWx(e)
-        self.panel._OnMouseMDClick(evt)
+        if self.capture(event.Dragging.MIDDLE):
+            self.SetFocus()
+            evt = event.MouseEvent.fromWx(e)
+            self.panel._OnMouseMDClick(evt)
     def on_mouse_right_down(self,e):
-        self.SetFocus()
-        evt = event.MouseEvent.fromWx(e)
-        self.panel._OnMouseRDown(evt)
+        if self.capture(event.Dragging.RIGHT):
+            self.SetFocus()
+            evt = event.MouseEvent.fromWx(e)
+            self.panel._OnMouseRDown(evt)
     def on_mouse_right_up(self,e):
+        self.release(event.Dragging.RIGHT)
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseRUp(evt)
     def on_mouse_right_dclick(self,e):
-        self.SetFocus()
-        evt = event.MouseEvent.fromWx(e)
-        self.panel._OnMouseRDClick(evt)
+        if self.capture(event.Dragging.RIGHT):
+            self.SetFocus()
+            evt = event.MouseEvent.fromWx(e)
+            self.panel._OnMouseRDClick(evt)
     def on_mouse_aux1_down(self,e):
-        self.SetFocus()
-        evt = event.MouseEvent.fromWx(e)
-        self.panel._OnMouseAUX1Down(evt)
+        if self.capture(event.Dragging.AUX1):
+            self.SetFocus()
+            evt = event.MouseEvent.fromWx(e)
+            self.panel._OnMouseAUX1Down(evt)
     def on_mouse_aux1_up(self,e):
+        self.release(event.Dragging.AUX1)
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseAUX1Up(evt)
     def on_mouse_aux1_dclick(self,e):
-        self.SetFocus()
-        evt = event.MouseEvent.fromWx(e)
-        self.panel._OnMouseAUX1DClick(evt)
+        if self.capture(event.Dragging.AUX1):
+            self.SetFocus()
+            evt = event.MouseEvent.fromWx(e)
+            self.panel._OnMouseAUX1DClick(evt)
     def on_mouse_aux2_down(self,e):
-        self.SetFocus()
-        evt = event.MouseEvent.fromWx(e)
-        self.panel._OnMouseAUX2Down(evt)
+        if self.capture(event.Dragging.AUX2):
+            self.SetFocus()
+            evt = event.MouseEvent.fromWx(e)
+            self.panel._OnMouseAUX2Down(evt)
     def on_mouse_aux2_up(self,e):
+        self.release(event.Dragging.AUX2)
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseAUX2Up(evt)
     def on_mouse_aux2_dclick(self,e):
-        self.SetFocus()
-        evt = event.MouseEvent.fromWx(e)
-        self.panel._OnMouseAUX2DClick(evt)
+        if self.capture(event.Dragging.AUX2):
+            self.SetFocus()
+            evt = event.MouseEvent.fromWx(e)
+            self.panel._OnMouseAUX2DClick(evt)
     def on_mouse_motion(self,e):
         evt = event.MouseEvent.fromWx(e)
         self.panel._OnMouseMotion(evt)
@@ -249,6 +265,18 @@ class GLPanel(glcanvas.GLCanvas):
     def update(self):
         self._update = True
 
+    def capture(self,mouse):
+        if not self.HasCapture():
+            self.CaptureMouse()
+            self.dragging = mouse
+            return True
+        return False
+
+    def release(self,mouse):
+        if self.dragging is mouse:
+            self.dragging = event.Dragging.NONE
+            self.ReleaseMouse()
+
 class Panel:
     def __init__(self,parent):
         self._update = status.GraphStatus.NONE
@@ -258,6 +286,7 @@ class Panel:
         self._top = 0
         self._width = 1
         self._height = 1
+        self.dragging = event.Dragging.NONE
         # self._background = skia.Color4f.kTransparent
         self._background = skia.Color4f.kWhite
         self._background = color.Color(0,0,0,0)
@@ -439,24 +468,24 @@ class Panel:
         #         child.OnIdle(event)
         #         return
 
-    def _OnMouseLDown(self,event):
-        evt = self.event2child(event)
+    def _OnMouseLDown(self,e):
+        evt = self.event2child(e)
         for child in self.children:
             if child.contains(evt.x,evt.y):
                 child._OnMouseLDown(evt)
         if not evt.Skipped:
-            self.OnMouseLDown(event)
+            self.OnMouseLDown(e)
         else:
-            event.Skip()
+            e.Skip()
         self.root_refresh()
-    def OnMouseLDown(self,event):
+    def OnMouseLDown(self,e):
         # 何かしらの処理
         pass
 
     def _OnMouseLUp(self,event):
         evt = self.event2child(event)
         for child in self.children:
-            if child.contains(evt.x,evt.y):
+            # if child.contains(evt.x,evt.y):
                 child._OnMouseLUp(evt)
         if not evt.Skipped:
             self.OnMouseLUp(event)
@@ -482,7 +511,7 @@ class Panel:
     def _OnMouseRUp(self,event):
         evt = self.event2child(event)
         for child in self.children:
-            if child.contains(evt.x,evt.y):
+            # if child.contains(evt.x,evt.y):
                 child._OnMouseRUp(evt)
         if not evt.Skipped:
             self.OnMouseRUp(event)
@@ -508,7 +537,7 @@ class Panel:
     def _OnMouseMUp(self,event):
         evt = self.event2child(event)
         for child in self.children:
-            if child.contains(evt.x,evt.y):
+            # if child.contains(evt.x,evt.y):
                 child._OnMouseMUp(evt)
         if not evt.Skipped:
             self.OnMouseMUp(event)
@@ -585,7 +614,7 @@ class Panel:
     def _OnMouseAUX1Up(self,event):
         evt = self.event2child(event)
         for child in self.children:
-            if child.contains(evt.x,evt.y):
+            # if child.contains(evt.x,evt.y):
                 child._OnMouseAUX1Up(evt)
         if not evt.Skipped:
             self.OnMouseAUX1Up(event)
@@ -611,7 +640,7 @@ class Panel:
     def _OnMouseAUX2Up(self,event):
         evt = self.event2child(event)
         for child in self.children:
-            if child.contains(evt.x,evt.y):
+            # if child.contains(evt.x,evt.y):
                 child._OnMouseAUX2Up(evt)
         if not evt.Skipped:
             self.OnMouseAUX2Up(event)

@@ -1,6 +1,6 @@
 
 import copy
-from enum import Flag,auto
+from enum import Flag,Enum,auto
 import wx
 
 # glcanvasでwx.EventをここのEventに必要なデータだけ移してpanel.Panel以降はこのeventで済ませたい
@@ -28,6 +28,14 @@ class Type(Flag):
     MOUSE_A2_DCLICK = auto()
     MOUSE_MOTION = auto()
     MOUSE_WHEEL = auto()
+
+class Dragging(Enum):
+    NONE = auto()
+    LEFT = auto()
+    RIGHT = auto()
+    MIDDLE = auto()
+    AUX1 = auto()
+    AUX2 = auto()
 
 class Event:
     def __init__(self):
