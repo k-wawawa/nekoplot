@@ -187,3 +187,20 @@ class MouseEvent(Event):
 
     def GetWheelRotation(self):
         return self.rot
+
+class DPIChangedEvent(Event):
+    def __init__(self):
+        super().__init__()
+        self.olddpi = 0
+        self.newdpi = 0
+        self.scalex = 0
+        self.scaley = 0
+
+    @classmethod
+    def fromWx(cls,event):
+        evt = cls()
+        odpi = event.GetOldDPI()
+        evt.olddpi = (odpi.width,odpi.height)
+        ndpi = event.GetOldDPI()
+        evt.newdpi = (ndpi.width,odpi.height)
+        evt.scalex = event.ScaleX(1)

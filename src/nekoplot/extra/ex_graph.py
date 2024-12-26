@@ -66,6 +66,7 @@ class GraphDetector(graph.Graph):
 
     def draw_value(self,canvas):
         if self.image.data is not None:
+            font = self.font*self.sizescale
             xl = max(0,int(self.xlim[0]))
             xr = min(self.data.shape[1]-1,int(self.xlim[1]))
             yd = max(0,int(self.ylim[0]))
@@ -78,9 +79,9 @@ class GraphDetector(graph.Graph):
                         ps = self.toDisp(x+0.5,y+0.5)
                         v = self.data[y][x]
                         t = str(v)
-                        blob = skia.TextBlob.MakeFromString(t,self.font())
+                        blob = skia.TextBlob.MakeFromString(t,font())
                         tw = self.font.measureText(t,paint=self.paint)
-                        tpos = (-0.5*tw+ps[0],ps[1]+0.5*self.font.getSize())
+                        tpos = (-0.5*tw+ps[0],ps[1]+0.5*font.getSize())
                         canvas.drawTextBlob(blob,*tpos,self.paint)
 
     def modifydata(self,**dargs):

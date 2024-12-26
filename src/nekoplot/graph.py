@@ -504,6 +504,7 @@ class Graph1Image(Graph):
 
     def draw_value(self,canvas):
         if self.image.data is not None:
+            font = self.font*self.sizescale
             xl = max(0,int(self.xlim[0]))
             xr = min(self.data.shape[1]-1,int(self.xlim[1]))
             yd = max(0,int(self.ylim[0]))
@@ -516,9 +517,9 @@ class Graph1Image(Graph):
                         ps = self.toDisp(x+0.5,y+0.5)
                         v = self.data[y][x]
                         t = str(v)
-                        blob = skia.TextBlob.MakeFromString(t,self.font())
-                        tw = self.font.measureText(t,paint=self.paint)
-                        tpos = (-0.5*tw+ps[0],ps[1]+0.5*self.font.getSize())
+                        blob = skia.TextBlob.MakeFromString(t,font())
+                        tw = font.measureText(t,paint=self.paint)
+                        tpos = (-0.5*tw+ps[0],ps[1]+0.5*font.getSize())
                         canvas.drawTextBlob(blob,*tpos,self.paint)
 
     def modifydata(self,**dargs):
@@ -1013,29 +1014,30 @@ class GraphTick(Graph):
         canvas.restore()
 
     def draw_ticks(self,canvas):
+        font = self.font*self.sizescale
         rot = 0 if self.direction in [status.Direction.LtoR,status.Direction.RtoL] else 1
         l = (self.width,self.height)[rot]
         value,text = self.tick.value_text
         if rot == 0:
             longlongtext = "".join(text)
-            tw = self.font.measureText(longlongtext,paint=self.paint)
+            tw = font.measureText(longlongtext,paint=self.paint)
             skip = 1 if tw < self.width else 2
         else:
-            skip = 1 if self.font.getHeight()*len(text)<self.height else 2
+            skip = 1 if font.getHeight()*len(text)<self.height else 2
         for v,t in zip(value[::skip],text[::skip]):
             pos = self.toDisp(v,v)[rot]-self._deviceXY[rot]
             # pos += 0.5
             s,e = ((pos,0),(pos,self.tick_length)) if (1-rot) else ((self.width-self.tick_length,pos),(self.width,pos))
             canvas.drawLine(*s,*e,self.paint)
-            blob = skia.TextBlob.MakeFromString(t,self.font())
-            tw = self.font.measureText(t,paint=self.paint)
-            tpos = (-0.5*tw+pos,self.tick_length+self.font.getHeight()) if (1-rot) else (self.width-self.tick_length-tw-2,pos+0.5*self.font.getHeight())
+            blob = skia.TextBlob.MakeFromString(t,font())
+            tw = font.measureText(t,paint=self.paint)
+            tpos = (-0.5*tw+pos,self.tick_length+font.getHeight()) if (1-rot) else (self.width-self.tick_length-tw-2,pos+0.5*font.getHeight())
             canvas.drawTextBlob(blob,*tpos,self.paint)
         offset = self.tick.offset
         if len(offset):
-            blob = skia.TextBlob.MakeFromString(offset,self.font())
-            tw = self.font.measureText(offset,paint=self.paint)
-            tpos = (-tw+self.width,self.tick_length+2.1*self.font.getHeight()) if (1-rot) else (self.width-tw,-0.2*self.font.getHeight())
+            blob = skia.TextBlob.MakeFromString(offset,font())
+            tw = font.measureText(offset,paint=self.paint)
+            tpos = (-tw+self.width,self.tick_length+2.1*font.getHeight()) if (1-rot) else (self.width-tw,-0.2*font.getHeight())
             canvas.drawTextBlob(blob,*tpos,self.paint)
 
     def OnMouseDClick(self,evt):

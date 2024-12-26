@@ -3,12 +3,12 @@ class AbstructLayout:
     def __init__(self):
         self.children = []
 
-    def calcurate(self,width,height):
+    def calcurate(self,width,height,dipscale=1):
         # width,height から計算してchildrenに適用する部分
         pass
 
 class NullLayout(AbstructLayout):
-    def calcurate(self,width,height):
+    def calcurate(self,width,height,dipscale=1):
         pass#print(width,height)
 
 class LayoutSize:
@@ -45,19 +45,19 @@ class GridLayout(AbstructLayout):
         self.size = None
         self.children = list()
 
-    def calcurate(self,width,height):
+    def calcurate(self,width,height,dipscale=1):
         w = LayoutSize()
         for size in self.columns:
             w += size
-        r = (width-w.abs)/w.rel if w.rel>0 else 0
-        col = [int(r*s.rel+s.abs) for s in [LayoutSize()]+self.columns+[LayoutSize()]]
+        r = (width-w.abs*dipscale)/w.rel if w.rel>0 else 0
+        col = [int(r*s.rel+s.abs*dipscale) for s in [LayoutSize()]+self.columns+[LayoutSize()]]
         for i in range(len(col[1:])):
             col[i+1] += col[i]
         h = LayoutSize()
         for size in self.rows:
             h += size
-        r = (height-h.abs)/h.rel if h.rel>0 else 0
-        row = [int(r*s.rel+s.abs) for s in [LayoutSize()]+self.rows+[LayoutSize()]]
+        r = (height-h.abs*dipscale)/h.rel if h.rel>0 else 0
+        row = [int(r*s.rel+s.abs*dipscale) for s in [LayoutSize()]+self.rows+[LayoutSize()]]
         for i in range(len(row[1:])):
             row[i+1] += row[i]
         self.size = (col,row)
