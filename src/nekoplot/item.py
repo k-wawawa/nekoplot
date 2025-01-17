@@ -1,4 +1,5 @@
 import time
+import itertools
 from enum import Flag, auto,Enum
 import skia
 import numpy as np
@@ -6,6 +7,7 @@ import numpy as np
 from . import status
 from . import color
 from . import utility
+from . import rect
 
 BASE_LINE_PAINT = skia.Paint(AntiAlias=True,
                              Style=skia.Paint.Style.kStroke_Style,
@@ -77,9 +79,6 @@ class Line:
         self._data = d
         sd = np.array([self._xscale(d[0]),self._yscale(d[1])])
         self._scaled_data = sd
-        self.xrange = (np.min(sd[0][np.isfinite(sd[0])]),np.max(sd[0][np.isfinite(sd[0])]))
-        self.yrange = (np.min(sd[1][np.isfinite(sd[1])]),np.max(sd[1][np.isfinite(sd[1])]))
-        self._lpath = skia.Path()
         finite = np.all(np.isfinite(sd),axis=0)
         if np.all(~finite):
             self.xrange = (0,1)
@@ -413,30 +412,24 @@ class FLine():
             return
         d = np.array(value,dtype=np.float64).T
         self._data = d
-        sd = np.array([self._xscale(d[0]),self._yscale(d[1])])
+        sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
         self._scaled_data = sd
-        self.xrange = (np.min(sd[0][np.isfinite(sd[0])]),np.max(sd[0][np.isfinite(sd[0])]))
-        self.yrange = (np.min(sd[1][np.isfinite(sd[1])]),np.max(sd[1][np.isfinite(sd[1])]))
+        finite = np.all(np.isfinite(sd),axis=0)
+        self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
+        self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
         self._lpath = skia.Path()
-        if self.data is not None:
-                sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
-                self._scaled_data = sd
-                finite = np.all(np.isfinite(sd),axis=0)
-                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
-                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
-                self._lpath = skia.Path()
+        connect = False
+        for x,y,ok in np.vstack([sd,finite]).T:
+            if connect and ok:
+                self._lpath.lineTo(x,y)
+            elif (not connect) and ok:
+                self._lpath.moveTo(x,y)
+                self._lpath.lineTo(x,y)
+                connect = True
+            elif connect and (not ok):
                 connect = False
-                for x,y,ok in np.vstack([sd,finite]).T:
-                    if connect and ok:
-                        self._lpath.lineTo(x,y)
-                    elif (not connect) and ok:
-                        self._lpath.moveTo(x,y)
-                        self._lpath.lineTo(x,y)
-                        connect = True
-                    elif connect and (not ok):
-                        connect = False
-                    else:
-                        pass
+            else:
+                pass
         self._update = status.LineStatus.DATA
         if self.layer is not None:
             self.layer.update()
@@ -827,17 +820,19 @@ class Image():
         self.auto_left = 25
         self.auto_right = 75
         self.colormap = "parula"
+        self.nan_color = color.Color.fromU8(0,0,0,0)
         self.img = None
         self._colorbar = None
         self._vscale = lambda x:x
         self._scaled_data = None
-        self._extent = None
+        self.extent = None
 
     def clear(self):
         self._update &= status.ImageStatus.NONE
         self.data = None
         self._scaled_data = None
         self.img = None
+        self.extent = None
 
     def set(self,**dargs):
         if "data" in dargs:
@@ -847,6 +842,7 @@ class Image():
                 self._update |= status.ImageStatus.DATA
                 self.data = np.array(dargs.pop("data"))
                 self._scaled_data = self.vscale(self.data.astype(np.float32))
+                self.extent = None
         if {"vmin","vmax","vscale","colormap"} & set(dargs.keys()):
             self._update |= status.ImageStatus.VALUE
         if "vmin" in dargs:
@@ -907,9 +903,9 @@ class Image():
             return
         # Apply color map
         tmp = self._scaled_data.copy()
+        mask = np.isnan(tmp)
         vmin,vmax = self.vscale(self.vmin),self.vscale(self.vmax)
         if vmin==vmax:
-            mask = np.isnan(tmp)
             tmp = np.where(tmp>vmin,255,0)
             # tmp[np.isnan(tmp)] = vmin
             # small = tmp<=vmin
@@ -918,7 +914,6 @@ class Image():
             # tmp[large] = 255
         else:
             d = 255./(vmax-vmin)
-            mask = np.isnan(tmp)
             tmp[np.isnan(tmp)] = vmin
             tmp = d*(np.clip(tmp,vmin,vmax)-vmin)
             # tmp[np.isnan(tmp)] = vmin
@@ -929,16 +924,57 @@ class Image():
             # tmp -= vmin
             # tmp *= d
         tmp = self.colormap.apply(tmp).copy()
+        tmp[mask] = self.nan_color.i32
         self.img = skia.Image.fromarray(tmp,skia.ColorType.kRGBA_8888_ColorType)
         self._update &= status.ImageStatus.NONE
 
     def flush(self,canvas):
-        if (self.extent is not None):
-            if (self.img is not None):
-                irct = skia.IRect.MakeWH(self.img.width(),self.img.height())
-                canvas.drawImageRect(self.img,irct,self.extent)
-        else:
-            canvas.drawImage(self.img,0,0)
+        if (self.img is not None):
+            irct = skia.IRect.MakeWH(self.img.width(),self.img.height())
+            canvas.drawImageRect(self.img,irct,self.extent.skiaRect)
+
+    def draw_value(self,canvas,graph):
+        if self.data is not None:
+            font = graph.font*graph.sizescale
+            xl = max(self.extent.x0,graph.xlim[0])
+            xr = min(self.extent.x1,graph.xlim[1])
+            yd = max(self.extent.y0,graph.ylim[0])
+            yu = min(self.extent.y1,graph.ylim[1])
+            imrect = self.rect
+            toextent = imrect.to(self.extent)
+            ds = toextent(np.array([[0,0],[1,1]]))
+            d1,d2 = graph.toDisp(*ds[0])
+            d3,d4 = graph.toDisp(*ds[1])
+            mbox = font.getHeight()*1.1*3
+            if abs(d3-d1)>mbox and abs(d4-d2)>mbox:
+                torect = self.extent.to(imrect)
+                iis = torect(np.array([[xl,yd],[xr,yu]]))
+                i1,i2 = iis[0]
+                i3,i4 = iis[1]
+                xs = np.arange(int(i1),min(int(i3)+1,self.data.shape[1]))
+                ys = np.arange(int(i2),min(int(i4)+1,self.data.shape[0]))
+                ijs = np.array(list(itertools.product(xs,ys)))
+                xys = toextent(ijs+0.5)
+                for ij,xy in zip(ijs,xys):
+                    i,j = ij
+                    ps = graph.toDisp(*xy)
+                    v = self.data[j][i]
+                    t = str(v)
+                    blob = font.makeText(t)
+                    tw = font.measureText(t,paint=graph.paint)
+                    tpos = (ps[0]-0.5*tw, ps[1]+0.5*font.getSize())
+                    canvas.drawTextBlob(blob,*tpos,graph.paint)
+
+    @property
+    def width(self):
+        if self.data is not None:
+            return self.data.shape[1]
+        return 1
+    @property
+    def height(self):
+        if self.data is not None:
+            return self.data.shape[0]
+        return 1
 
     @property
     def colorbar(self):
@@ -971,8 +1007,15 @@ class Image():
     def extent(self):
         return self._extent
     @extent.setter
-    def extent(self,value):
-        self._extent = skia.Rect.MakeLTRB(*value)
+    def extent(self,value=None):
+        if value is not None:
+            self._extent = rect.Rect(coodinate=value)
+        else:
+            self._extent = rect.Rect(coodinate=(0.,0.,self.width+.0,self.height+.0))
+
+    @property
+    def rect(self):
+        return rect.Rect(coodinate=(0.,0.,self.width+.0,self.height+.0))
 
 class Fonts():
     segoe = skia.Typeface.MakeFromName("Segoe UI")
@@ -999,6 +1042,9 @@ class Font():
 
     def measureText(self,string,*args,**dargs):
         return self().measureText(string,*args,**dargs)
+
+    def makeText(self,string):
+        return skia.TextBlob.MakeFromString(string,self())
 
     def getSize(self):
         return self._size

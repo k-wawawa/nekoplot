@@ -54,12 +54,14 @@ class Color:
         self.blue = b
         self.alpha = a
 
-    def fromU8(r=0,g=0,b=0,a=255):
+    @classmethod
+    def fromU8(cls,r=0,g=0,b=0,a=255):
         if not((0<=r<=255) and (0<=g<=255) and (0<=b<=255) and (0<=a<=255)):
             raise RuntimeError("Color(red:int, green:int, blue:int, alpha:int) r,g,b,a in [0,255]")
-        return Color(r/255.,g/255.,b/255.,a/255.)
+        return cls(r/255.,g/255.,b/255.,a/255.)
 
-    def fromHSV(h=0,s=1,v=1,a=1.0):
+    @classmethod
+    def fromHSV(cls,h=0,s=1,v=1,a=1.0):
         s = min(s,v)
         if s == 0:
             return Color(v,v,v)
@@ -81,7 +83,7 @@ class Color:
                 r,g,b = y+s,y,y+x
             else:
                 raise RuntimeError("Cant convert hsv to color")
-            return Color(r,g,b,a)
+            return cls(r,g,b,a)
 
     def toHSV(self):
         v = max(self.red,self.blue,self.green)

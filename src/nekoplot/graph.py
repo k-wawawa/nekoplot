@@ -458,8 +458,6 @@ class Graph1Image(Graph):
         del self.images
         del self.lines
         self.image = item.Image()
-        self._roix = None
-        self._roiy = None
         self._colorbar = None
         self.font = item.Font(size=12)
         self.paint = skia.Paint(Color=skia.Color(0,0,0),AntiAlias=True)
@@ -486,45 +484,38 @@ class Graph1Image(Graph):
         canvas.rotate(rotate)
         x,y = self._deviceXY
         canvas.clipRect(skia.Rect.MakeXYWH(x,y,self.width,self.height))
-        self.draw_roi(canvas)
-        self.draw_value(canvas)
+        self.image.draw_value(canvas,self)
         canvas.restore()
-
-    def draw_roi(self,canvas):
-        if self.image.data is not None:
-            x,y = self._deviceXY
-            xx,yy = self.width+x-1,self.height+y-1
-            if self.roix is not None and self.roiy is not None:
-                x1,y1 = self.toDisp(self.roix[0],self.roiy[0])
-                x2,y2 = self.toDisp(self.roix[1],self.roiy[1])
-                canvas.drawLine(x1,y,x1,yy,skia.Paint())
-                canvas.drawLine(x2,y,x2,yy,skia.Paint())
-                canvas.drawLine(x,y1,xx,y1,skia.Paint())
-                canvas.drawLine(x,y2,xx,y2,skia.Paint())
-
-    def draw_value(self,canvas):
-        if self.image.data is not None:
-            font = self.font*self.sizescale
-            xl = max(0,int(self.xlim[0]))
-            xr = min(self.data.shape[1]-1,int(self.xlim[1]))
-            yd = max(0,int(self.ylim[0]))
-            yu = min(self.data.shape[0]-1,int(self.ylim[1]))
-            d1,d2 = self.toDisp(1,1)
-            d3,d4 = self.toDisp(2,2)
-            if abs(d3-d1)>20 and abs(d4-d2)>20:
-                for x in range(int(xl),int(xr)+1):
-                    for y in range(int(yd),int(yu)+1):
-                        ps = self.toDisp(x+0.5,y+0.5)
-                        v = self.data[y][x]
-                        t = str(v)
-                        blob = skia.TextBlob.MakeFromString(t,font())
-                        tw = font.measureText(t,paint=self.paint)
-                        tpos = (-0.5*tw+ps[0],ps[1]+0.5*font.getSize())
-                        canvas.drawTextBlob(blob,*tpos,self.paint)
 
     def modifydata(self,**dargs):
         self.update()
         self.image.set(**dargs)
+
+    def autorange(self,x=True,y=True):
+        xr,yr = (self.image.extent.x0,self.image.extent.x1),(self.image.extent.y0,self.image.extent.y1)
+        dx = (xr[1]-xr[0])*0.05
+        dy = (yr[1]-yr[0])*0.05
+        if x:
+            if dx<=0:
+                self.xlim = (0,1)
+            else:
+                self.xlim = (xr[0]-dx,xr[1]+dx)
+        if y:
+            if dy<=0:
+                self.ylim = (0,1)
+            else:
+                self.ylim = (yr[0]-dy,yr[1]+dy)
+
+    @property
+    def vscale(self):
+        return self.image.vscale
+    @vscale.setter
+    def vscale(self,value):
+        if isinstance(value,scale.AbstructScale):
+            self.update()
+            self.image.set(vscale=value)
+            if self.colorbar is not None:
+                self.colorbar.vscale = value
 
     @property
     def colorbar(self):
@@ -544,22 +535,6 @@ class Graph1Image(Graph):
         self.image.set(data=value)
         self.image.make_histogram()
         self.image.auto_colorrange()
-
-    @property
-    def roix(self):
-        return self._roix
-    @roix.setter
-    def roix(self,value):
-        self.update()
-        self._roix = value
-
-    @property
-    def roiy(self):
-        return self._roiy
-    @roiy.setter
-    def roiy(self,value):
-        self.update()
-        self._roiy = value
 
     @property
     def colormap(self):
@@ -710,6 +685,7 @@ class GraphColorBar(Graph):
                 canvas.translate(0,self.height)
                 canvas.scale(1,-1)
             self.image.img = self.image.img.resize(int(self.width),int(self.height/2))
+            self.image.extent = (0,0,int(self.width),int(self.height/2))
             self.image.flush(canvas)
             canvas.restore()
 
