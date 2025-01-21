@@ -1,5 +1,6 @@
 
 import time
+import itertools
 import skia
 import numpy as np
 
@@ -7,6 +8,7 @@ from .. import status
 from .. import color
 from .. import item
 from .. import utility
+from .. import rect
 
 class DetectorImage():
     def __init__(self):
@@ -25,13 +27,14 @@ class DetectorImage():
         self.auto_left = 25
         self.auto_right = 75
         self.colormap = "parula"
+        self.nan_color = color.Color.fromU8(0,0,0,0)
         self.img = None
         self.mask_img = None
         self.mask_draw_img = None
         self._mask_alpha = 0.5
         self._mask_color = color.ColorList["red"]
         self._colorbar = None
-        self._extent = None
+        self.extent = None
 
     @property
     def mask_color(self):
@@ -57,6 +60,7 @@ class DetectorImage():
         self.data = None
         self._scaled_data = None
         self.img = None
+        self.extent = None
 
     def set(self,**dargs):
         if "data" in dargs:
@@ -67,6 +71,7 @@ class DetectorImage():
                 self._update_image = True
                 self.data = np.array(dargs.pop("data"))
                 self._scaled_data = self.vscale(self.data.astype(np.float32))
+                self.extent = None
         if "mask" in dargs:
             if dargs["mask"] is None:
                 self.data_mask = None
@@ -183,9 +188,9 @@ class DetectorImage():
             return
         # Apply color map
         tmp = self._scaled_data.copy()
+        mask = np.isnan(tmp)
         vmin,vmax = self.vscale(self.vmin),self.vscale(self.vmax)
         if vmax == vmin:
-            mask = np.isnan(tmp)
             tmp = np.where(tmp>vmin,255,0)
             # tmp[np.isnan(tmp)] = vmin
             # small = tmp<=vmin
@@ -194,7 +199,6 @@ class DetectorImage():
             # tmp[large] = 255
         else:
             d = 255./(vmax-vmin)
-            mask = np.isnan(tmp)
             tmp[np.isnan(tmp)] = vmin
             tmp = d*(np.clip(tmp,vmin,vmax)-vmin)
             # tmp[np.isnan(tmp)] = vmin
@@ -205,6 +209,7 @@ class DetectorImage():
             # tmp -= vmin
             # tmp *= d
         tmp = self.colormap.apply(tmp).copy()
+        tmp[mask] = self.nan_color.i32
         self.img = skia.Image.fromarray(tmp,skia.ColorType.kRGBA_8888_ColorType)
         self._update &= status.ImageStatus.NONE
 
@@ -248,16 +253,66 @@ class DetectorImage():
         self.draw_mask_draw()
 
     def flush(self,canvas):
-        if (self.extent is not None):
-            if (self.img is not None):
-                irct = skia.IRect.MakeWH(self.img.width(),self.img.height())
-                canvas.drawImageRect(self.img,irct,self.extent)
-                canvas.drawImageRect(self.mask_img,irct,self.extent,skia.Paint(Alphaf=self.mask_alpha))
-                canvas.drawImageRect(self.mask_draw_img,irct,self.extent,skia.Paint(Alphaf=self.mask_alpha))
-        else:
-            canvas.drawImage(self.img,0,0)
-            canvas.drawImage(self.mask_img,0,0,skia.Paint(Alphaf=self.mask_alpha))
-            canvas.drawImage(self.mask_draw_img,0,0,skia.Paint(Alphaf=self.mask_alpha))
+        if (self.img is not None):
+            irct = skia.IRect.MakeWH(self.img.width(),self.img.height())
+            canvas.drawImageRect(self.img,irct,self.extent.skiaRect)
+            canvas.drawImageRect(self.mask_img,irct,self.extent.skiaRect,skia.Paint(Alphaf=self.mask_alpha))
+            canvas.drawImageRect(self.mask_draw_img,irct,self.extent.skiaRect,skia.Paint(Alphaf=self.mask_alpha))
+
+    def draw_value(self,canvas,graph):
+        if self.data is not None:
+            font = graph.font*graph.sizescale
+            xl = max(self.extent.x0,graph.xlim[0])
+            xr = min(self.extent.x1,graph.xlim[1])
+            yd = max(self.extent.y0,graph.ylim[0])
+            yu = min(self.extent.y1,graph.ylim[1])
+            imrect = self.rect
+            toextent = imrect.to(self.extent)
+            ds = toextent(np.array([[0,0],[1,1]]))
+            d1,d2 = graph.toDisp(*ds[0])
+            d3,d4 = graph.toDisp(*ds[1])
+            mbox = font.getHeight()*1.1*3
+            if abs(d3-d1)>mbox and abs(d4-d2)>mbox:
+                torect = self.extent.to(imrect)
+                iis = torect(np.array([[xl,yd],[xr,yu]]))
+                i1,i2 = iis[0]
+                i3,i4 = iis[1]
+                xs = np.arange(int(i1),min(int(i3)+1,self.data.shape[1]))
+                ys = np.arange(int(i2),min(int(i4)+1,self.data.shape[0]))
+                ijs = np.array(list(itertools.product(xs,ys)))
+                xys = toextent(ijs+0.5)
+                for ij,xy in zip(ijs,xys):
+                    i,j = ij
+                    ps = graph.toDisp(*xy)
+                    v = self.data[j][i]
+                    t = str(v)
+                    blob = font.makeText(t)
+                    tw = font.measureText(t,paint=graph.paint)
+                    tpos = (ps[0]-0.5*tw, ps[1]+0.5*font.getSize())
+                    canvas.drawTextBlob(blob,*tpos,graph.paint)
+
+    def draw_roi(self,canvas,graph):
+        if self.data is not None:
+            x,y = graph._deviceXY
+            xx,yy = graph.width+x-1, graph.height+y-1
+            if graph.roix is not None and graph.roiy is not None:
+                x1,y1 = graph.toDisp(graph.roix[0],graph.roiy[0])
+                x2,y2 = graph.toDisp(graph.roix[1],graph.roiy[1])
+                canvas.drawLine(x1,y,x1,yy,skia.Paint())
+                canvas.drawLine(x2,y,x2,yy,skia.Paint())
+                canvas.drawLine(x,y1,xx,y1,skia.Paint())
+                canvas.drawLine(x,y2,xx,y2,skia.Paint())
+
+    @property
+    def width(self):
+        if self.data is not None:
+            return self.data.shape[1]
+        return 1
+    @property
+    def height(self):
+        if self.data is not None:
+            return self.data.shape[0]
+        return 1
 
     @property
     def colorbar(self):
@@ -291,7 +346,11 @@ class DetectorImage():
         return self._extent
     @extent.setter
     def extent(self,value):
-        if value is None:
-            self._extent = None
+        if value is not None:
+            self._extent = rect.Rect(coodinate=value)
         else:
-            self._extent = skia.Rect.MakeLTRB(*value)
+            self._extent = rect.Rect(coodinate=(0.,0.,self.width+.0,self.height+.0))
+
+    @property
+    def rect(self):
+        return rect.Rect(coodinate=(0.,0.,self.width+.0,self.height+.0))

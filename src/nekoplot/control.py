@@ -28,22 +28,23 @@ class TextBox(panel.PanelwoChild):
         return self._font
     @font.setter
     def font(self,value):
-        self.update()
         self._font = value
+        self.update()
 
     @property
     def position(self):
         return self._position
     @position.setter
     def position(self,value):
-        self.update()
         self._position = value
+        self.update()
 
     def _draw(self,canvas):
-        blob = skia.TextBlob.MakeFromString(self.text,self.font())
-        tw = self.font.measureText(self.text,paint=self.paint)
+        font = self.font*self.sizescale
+        blob = skia.TextBlob.MakeFromString(self.text,font())
+        tw = font.measureText(self.text,paint=self.paint)
         # th = self.font().getSize()
-        th = self.font.getHeight()
+        th = font.getHeight()
         if self.position[0] == status.PositionStatus.LT:
             l = 0
         elif self.position[0] == status.PositionStatus.MM:
@@ -55,7 +56,7 @@ class TextBox(panel.PanelwoChild):
         elif self.position[1] == status.PositionStatus.MM:
             t = 0.5*th + self.height*0.5
         elif self.position[1] == status.PositionStatus.RB:
-            t = self.height - self.font().getMetrics().fDecent
+            t = self.height - font().getMetrics().fDecent
         tpos = (l,t)
         canvas.drawTextBlob(blob,*tpos,self.paint)
 

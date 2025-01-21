@@ -48,40 +48,9 @@ class GraphDetector(graph.Graph):
         canvas.rotate(rotate)
         x,y = self._deviceXY
         canvas.clipRect(skia.Rect.MakeXYWH(x,y,self.width,self.height))
-        self.draw_roi(canvas)
-        self.draw_value(canvas)
+        self.image.draw_roi(canvas,self)
+        self.image.draw_value(canvas,self)
         canvas.restore()
-
-    def draw_roi(self,canvas):
-        if self.image.data is not None:
-            x,y = self._deviceXY
-            xx,yy = self.width+x-1,self.height+y-1
-            if self.roix is not None and self.roiy is not None:
-                x1,y1 = self.toDisp(self.roix[0],self.roiy[0])
-                x2,y2 = self.toDisp(self.roix[1],self.roiy[1])
-                canvas.drawLine(x1,y,x1,yy,skia.Paint())
-                canvas.drawLine(x2,y,x2,yy,skia.Paint())
-                canvas.drawLine(x,y1,xx,y1,skia.Paint())
-                canvas.drawLine(x,y2,xx,y2,skia.Paint())
-
-    def draw_value(self,canvas):
-        if self.image.data is not None:
-            xl = max(0,int(self.xlim[0]))
-            xr = min(self.data.shape[1]-1,int(self.xlim[1]))
-            yd = max(0,int(self.ylim[0]))
-            yu = min(self.data.shape[0]-1,int(self.ylim[1]))
-            d1,d2 = self.toDisp(1,1)
-            d3,d4 = self.toDisp(2,2)
-            if abs(d3-d1)>20 and abs(d4-d2)>20:
-                for x in range(int(xl),int(xr)+1):
-                    for y in range(int(yd),int(yu)+1):
-                        ps = self.toDisp(x+0.5,y+0.5)
-                        v = self.data[y][x]
-                        t = str(v)
-                        blob = skia.TextBlob.MakeFromString(t,self.font())
-                        tw = self.font.measureText(t,paint=self.paint)
-                        tpos = (-0.5*tw+ps[0],ps[1]+0.5*self.font.getSize())
-                        canvas.drawTextBlob(blob,*tpos,self.paint)
 
     def modifydata(self,**dargs):
         self.update()

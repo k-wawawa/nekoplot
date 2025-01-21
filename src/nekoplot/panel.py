@@ -6,7 +6,7 @@ from types import MethodType
 # from OpenGL.GL import GL_RGBA8
 GL_RGBA8 = 32856
 GL_SampleCnt = None
-
+BASE_DPI = 96
 import skia
 
 from . import status
@@ -427,6 +427,10 @@ class Panel:
         se.LTWH = self.LTWH
         self._OnSize(se)
 
+    @property
+    def sizescale(self):
+        return self.wx.GetDPI()[0]/BASE_DPI
+
     def root_refresh(self):
         if self.root:
             self.wx.draw()
@@ -447,7 +451,7 @@ class Panel:
 
     def _OnSize(self,event):
         self.update()
-        self.layout.calcurate(*event.WH)
+        self.layout.calcurate(*event.WH,self.sizescale)
         self.OnSize(event)
         self.root_refresh()
     def OnSize(self,event):
@@ -832,9 +836,11 @@ class Panel:
 class PanelwoChild:
     def __init__(self,parent):
         self._update = status.GraphStatus.NONE
-        if isinstance(parent,GLPanel):
+        self._wx = None
+        if isinstance(parent,(GLPanel,ImagePanel)):
             self.parent = None
-            self.wx = parent
+            self._wx = parent
+            self._wx.panel = self
         elif isinstance(parent,Panel):
             self.parent = parent
         else:
@@ -850,6 +856,19 @@ class PanelwoChild:
     @property
     def root(self):
         return (self.parent is None)
+
+    @property
+    def wx(self):
+        if self.root:
+            return self._wx
+        else:
+            return self.parent.wx
+    @wx.setter
+    def wx(self,value):
+        if self.root:
+            self._wx = value
+        else:
+            raise SkPlotExcept("this panel is not root")
 
     @property
     def LTRB(self):
@@ -897,6 +916,10 @@ class PanelwoChild:
         se = event.SizeEvent()
         se.LTWH = self.LTWH
         self._OnSize(se)
+
+    @property
+    def sizescale(self):
+        return self.wx.GetDPI()[0]/BASE_DPI
 
     def contains(self,x,y):
         xx,yy = self._deviceXY
@@ -1142,10 +1165,14 @@ class ImagePanel:
         self.height = height
         self.panel = Panel(self)
         self.glBG = skia.ColorWHITE
+        self.sizescale = 1
 
     @property
     def Size(self):
         return (self.width,self.height)
+
+    def GetDPI(self):
+        return (BASE_DPI,BASE_DPI)
 
     def makeLayer(self,width = None,height=None):
         w = width if width is not None else self.width
