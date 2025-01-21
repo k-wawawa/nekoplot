@@ -244,7 +244,9 @@ class SimpleImagePlot(skpanel.Panel):
         if self.statusbar is not None:
             if self.MainArea.contains(*evt.GetPosition()):
                 x,y = self.MainArea.toData(*evt.GetPosition())
-                self.statusbar.SetStatusText(f"({x:.5g},{y:.5g})")
+                z = self.MainArea.image.getValue_extent(x,y)
+                zs = f"{z:.5g}" if isinstance(z,(int,float)) else "---"
+                self.statusbar.SetStatusText(f"({x:.5g},{y:.5g},{zs})")
         if skstatus.MouseStatus.LEFT in self.MainArea._capture_mouse:
             px,py = self.MainArea.toData(self.MainArea.px,self.MainArea.py)
             x,y = self.MainArea.toData(*evt.GetPosition())
