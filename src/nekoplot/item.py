@@ -965,6 +965,18 @@ class Image():
                     tpos = (ps[0]-0.5*tw, ps[1]+0.5*font.getSize())
                     canvas.drawTextBlob(blob,*tpos,graph.paint)
 
+    def getValue_ij(self,i,j):
+        return self.data[j][i] if self.data is not None else None
+
+    def getValue_extent(self,x,y):
+        if self.data is not None:
+            if (self.extent.x0 <= x <= self.extent.x1) or (self.extent.x1 <= x <= self.extent.x0):
+                if (self.extent.y0 <= y <= self.extent.y1) or (self.extent.y1 <= y <= self.extent.y0):
+                    torect = self.extent.to(self.rect)
+                    i,j = torect(np.array([[x,y]]))[0]
+                    return self.data[int(j)][int(i)]
+        return None
+
     @property
     def width(self):
         if self.data is not None:
