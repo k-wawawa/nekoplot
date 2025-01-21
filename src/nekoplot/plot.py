@@ -138,13 +138,13 @@ class SimpleImagePlot(skpanel.Panel):
     def __init__(self,parent=None,statusbar=None,*args,**dargs):
         super().__init__(parent,*args,**dargs)
         self.layout = sklayout.GridLayout()
-        self.layout.addColumn(sklayout.LayoutSize(0,20)) # マージン
-        self.layout.addColumn(sklayout.LayoutSize(0,40)) # メモリ
+        self.layout.addColumn(sklayout.LayoutSize(0,50)) # メモリ
         self.layout.addColumn(sklayout.LayoutSize(1,0)) # メイン
         self.layout.addColumn(sklayout.LayoutSize(0,10)) # 隙間
-        self.layout.addColumn(sklayout.LayoutSize(0,40)) # メモリ
-        self.layout.addColumn(sklayout.LayoutSize(0,50)) # カラーバー
+        self.layout.addColumn(sklayout.LayoutSize(0,50)) # メモリ
+        self.layout.addColumn(sklayout.LayoutSize(0,75)) # カラーバー
         self.layout.addColumn(sklayout.LayoutSize(0,20)) # マージン
+
         self.layout.addRow(sklayout.LayoutSize(0,40))
         self.layout.addRow(sklayout.LayoutSize(1,0))
         self.layout.addRow(sklayout.LayoutSize(0,40))
@@ -178,11 +178,11 @@ class SimpleImagePlot(skpanel.Panel):
         self.ColorBar.xtick = self.CBXTick
 
         self.layout.add(self.filename,1,1,2,1)
-        self.layout.add(self.MainArea,2,1,1,1)
-        self.layout.add(self.mainXTick,2,2,1,1)
-        self.layout.add(self.mainYTick,1,1,1,1)
-        self.layout.add(self.ColorBar,5,1,1,1)
-        self.layout.add(self.CBXTick,4,1,1,1)
+        self.layout.add(self.MainArea,1,1,1,1)
+        self.layout.add(self.mainXTick,1,2,1,1)
+        self.layout.add(self.mainYTick,0,1,1,1)
+        self.layout.add(self.ColorBar,4,1,1,1)
+        self.layout.add(self.CBXTick,3,1,1,1)
 
         self._xlim = (0,1)
         self._ylim = (0,1)
@@ -242,8 +242,9 @@ class SimpleImagePlot(skpanel.Panel):
 
     def MainAreaOnMotion(self,evt):
         if self.statusbar is not None:
-            x,y = self.MainArea.toData(*evt.GetPosition())
-            self.statusbar.SetStatusText(f"({x:.5g},{y:.5g})")
+            if self.MainArea.contains(*evt.GetPosition()):
+                x,y = self.MainArea.toData(*evt.GetPosition())
+                self.statusbar.SetStatusText(f"({x:.5g},{y:.5g})")
         if skstatus.MouseStatus.LEFT in self.MainArea._capture_mouse:
             px,py = self.MainArea.toData(self.MainArea.px,self.MainArea.py)
             x,y = self.MainArea.toData(*evt.GetPosition())
@@ -281,6 +282,7 @@ class PlotFrame(wx.Frame):
 
     def plot(self,data,**dargs):
         self.graph.MainArea.lines.clear()
+        self.graph.MainArea.flines.clear()
         line = skitem.Line()
         line.set(xscale=self.graph.MainArea.xscale,yscale=self.graph.MainArea.yscale)
         line.set(data=data,**dargs)
@@ -299,7 +301,17 @@ class PlotFrame(wx.Frame):
         return line
 
     def fplot(self,data,**dargs):
+        self.graph.MainArea.lines.clear()
         self.graph.MainArea.flines.clear()
+        line = skitem.FLine()
+        line.set(xscale=self.graph.MainArea.xscale,yscale=self.graph.MainArea.yscale)
+        line.set(data=data,**dargs)
+        self.graph.MainArea.append(line)
+        self.graph.MainArea.update()
+        self.graph_gl.Refresh()
+        return line
+    
+    def freplot(self,data,**dargs):
         line = skitem.FLine()
         line.set(xscale=self.graph.MainArea.xscale,yscale=self.graph.MainArea.yscale)
         line.set(data=data,**dargs)
