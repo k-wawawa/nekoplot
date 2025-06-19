@@ -9,6 +9,7 @@ from .. import color
 from .. import item
 from .. import utility
 from .. import rect
+from .. import const
 
 class DetectorImage():
     def __init__(self):
@@ -126,7 +127,7 @@ class DetectorImage():
             if np.issubdtype(self.data.dtype,np.integer):
                 arr = self.data
                 vmin,vmax = np.min(arr),np.max(arr)
-                bins = int(vmax - vmin + 1)
+                bins = min(int(vmax - vmin +1),const.MAX_HISTGRAM_BINS)
                 r = (vmin-0.5,vmax+0.5)
             elif np.issubdtype(self.data.dtype,np.floating):
                 arr = self.data[np.isfinite(self.data)]
@@ -141,7 +142,7 @@ class DetectorImage():
                 if np.issubdtype(self.data.dtype,np.integer):
                     arr = self.data[~self.data_mask]
                     vmin,vmax = np.min(arr),np.max(arr)
-                    bins = int(vmax - vmin + 1)
+                    bins = min(int(vmax - vmin +1),const.MAX_HISTGRAM_BINS)
                     r = (vmin-0.5,vmax+0.5)
                 elif np.issubdtype(self.data.dtype,np.floating):
                     arr = self.data[np.logical_and(np.isfinite(self.data),~self.data_mask)]
@@ -254,7 +255,7 @@ class DetectorImage():
 
     def flush(self,canvas):
         if (self.img is not None):
-            irct = skia.IRect.MakeWH(self.img.width(),self.img.height())
+            irct = skia.Rect.MakeWH(self.img.width(),self.img.height())
             canvas.drawImageRect(self.img,irct,self.extent.skiaRect)
             canvas.drawImageRect(self.mask_img,irct,self.extent.skiaRect,skia.Paint(Alphaf=self.mask_alpha))
             canvas.drawImageRect(self.mask_draw_img,irct,self.extent.skiaRect,skia.Paint(Alphaf=self.mask_alpha))
