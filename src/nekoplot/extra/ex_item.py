@@ -257,8 +257,10 @@ class DetectorImage():
         if (self.img is not None):
             irct = skia.Rect.MakeWH(self.img.width(),self.img.height())
             canvas.drawImageRect(self.img,irct,self.extent.skiaRect)
-            if self.mask_img is not None: canvas.drawImageRect(self.mask_img,irct,self.extent.skiaRect,skia.Paint(Alphaf=self.mask_alpha))
-            if self.mask_draw_img is not None: canvas.drawImageRect(self.mask_draw_img,irct,self.extent.skiaRect,skia.Paint(Alphaf=self.mask_alpha))
+            if self.mask_img is not None:
+                canvas.drawImageRect(self.mask_img,irct,self.extent.skiaRect,paint=skia.Paint(Alphaf=self.mask_alpha))
+            if self.mask_draw_img is not None:
+                canvas.drawImageRect(self.mask_draw_img,irct,self.extent.skiaRect,paint=skia.Paint(Alphaf=self.mask_alpha))
 
     def draw_value(self,canvas,graph):
         if self.data is not None:
