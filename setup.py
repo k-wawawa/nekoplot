@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 NAME = 'nekoplot'
-__version__ = '0.3.3'
+__version__ = '0.3.4'
 
 setup(
     name=NAME,
