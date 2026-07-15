@@ -56,7 +56,7 @@ class TextBox(panel.PanelwoChild):
         elif self.position[1] == status.PositionStatus.MM:
             t = 0.5*th + self.height*0.5
         elif self.position[1] == status.PositionStatus.RB:
-            t = self.height - font().getMetrics().fDecent
+            t = self.height - font().getMetrics().fDescent
         tpos = (l,t)
         canvas.drawTextBlob(blob,*tpos,self.paint)
 
@@ -112,6 +112,6 @@ class Legend(panel.PanelwoChild):
         elif self.position[1] == status.PositionStatus.MM:
             t = 0.5*th + self.height*0.5
         elif self.position[1] == status.PositionStatus.RB:
-            t = self.height - self.font().getMetrics().fDecent
+            t = self.height - self.font().getMetrics().fDescent
         tpos = (l,t)
         canvas.drawTextBlob(blob,*tpos,self.paint)

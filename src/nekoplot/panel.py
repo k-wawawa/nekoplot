@@ -232,6 +232,8 @@ class GLPanel(glcanvas.GLCanvas):
             self.ctx,brt,skia.kBottomLeft_GrSurfaceOrigin,
             skia.kRGBA_8888_ColorType,skia.ColorSpace.MakeSRGB()
         )
+
+        self.ctx.freeGpuResources()
         return layer
 
     def draw(self):
@@ -257,7 +259,7 @@ class GLPanel(glcanvas.GLCanvas):
         canvas.flush()
         self.SwapBuffers()
         self.Refresh()
-        self.ctx.freeGpuResources()
+        # self.ctx.freeGpuResources()
 
     def add(self,child):
         self.panel.add(child)
@@ -451,7 +453,7 @@ class Panel:
 
     def _OnSize(self,event):
         self.update()
-        self.layout.calcurate(*event.WH,self.sizescale)
+        self.layout.calculate(*event.WH,self.sizescale)
         self.OnSize(event)
         self.root_refresh()
     def OnSize(self,event):

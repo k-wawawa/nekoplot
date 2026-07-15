@@ -78,30 +78,7 @@ class Line:
             return
         d = np.array(value,dtype=np.float64).T
         self._data = d
-        sd = np.array([self._xscale(d[0]),self._yscale(d[1])])
-        self._scaled_data = sd
-        finite = np.all(np.isfinite(sd),axis=0)
-        if np.all(~finite):
-            self.xrange = (0,1)
-            self.yrange = (0,1)
-            self._lpath = skia.Path()
-            self._update = status.LineStatus.DATA
-            return
-        self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
-        self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
-        self._lpath = skia.Path()
-        connect = False
-        for x,y,ok in np.vstack([sd,finite]).T:
-            if connect and ok:
-                self._lpath.lineTo(x,y)
-            elif (not connect) and ok:
-                self._lpath.moveTo(x,y)
-                self._lpath.lineTo(x,y)
-                connect = True
-            elif connect and (not ok):
-                connect = False
-            else:
-                pass
+        self._rebuild()
         self._update = status.LineStatus.DATA
 
     @property
@@ -238,6 +215,34 @@ class Line:
         else:
             raise RuntimeWarning("line size warning")
 
+    def _build_path(self,sd):
+        path = skia.Path()
+        finite = np.all(np.isfinite(sd), axis=0)
+        if not finite.any():
+            self.xrange = (0,1)
+            self.yrange = (0,1)
+            return path
+        self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
+        self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
+        bound = np.flatnonzero(finite[1:] != finite[:-1])+1
+        for seg in np.split(np.arange(sd.shape[1]), bound):
+            if not finite[seg[0]]:
+                continue
+            pts = [skia.Point(p[0],p[1]) for p in sd[:, seg].T]
+            if len(pts) == 1:
+                path.moveTo(pts[0])
+                path.lineTo(pts[0])
+            else:
+                path.addPoly(pts, False)
+        return path
+
+    def _rebuild(self):
+        if self.data is not None:
+            sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
+            self._scaled_data = sd
+            self._lpath = self._build_path(sd)
+            self._update = status.LineStatus.DATA
+
     @property
     def xscale(self):
         return self._xscale
@@ -245,32 +250,7 @@ class Line:
     def xscale(self,value):
         if callable(value):
             self._xscale = value
-            if self.data is not None:
-                sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
-                self._scaled_data = sd
-                finite = np.all(np.isfinite(sd),axis=0)
-                if np.all(~finite):
-                    self.xrange = (0,1)
-                    self.yrange = (0,1)
-                    self._lpath = skia.Path()
-                    self._update = status.LineStatus.DATA
-                    return
-                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
-                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
-                self._lpath = skia.Path()
-                connect = False
-                for x,y,ok in np.vstack([sd,finite]).T:
-                    if connect and ok:
-                        self._lpath.lineTo(x,y)
-                    elif (not connect) and ok:
-                        self._lpath.moveTo(x,y)
-                        self._lpath.lineTo(x,y)
-                        connect = True
-                    elif connect and (not ok):
-                        connect = False
-                    else:
-                        pass
-                self._update = status.LineStatus.DATA
+            self._rebuild()
         else:
             raise RuntimeWarning("numpy array callable only")
 
@@ -281,32 +261,7 @@ class Line:
     def yscale(self,value):
         if callable(value):
             self._yscale = value
-            if self.data is not None:
-                sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
-                self._scaled_data = sd
-                finite = np.all(np.isfinite(sd),axis=0)
-                if np.all(~finite):
-                    self.xrange = (0,1)
-                    self.yrange = (0,1)
-                    self._lpath = skia.Path()
-                    self._update = status.LineStatus.DATA
-                    return
-                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
-                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
-                self._lpath = skia.Path()
-                connect = False
-                for x,y,ok in np.vstack([sd,finite]).T:
-                    if connect and ok:
-                        self._lpath.lineTo(x,y)
-                    elif (not connect) and ok:
-                        self._lpath.moveTo(x,y)
-                        self._lpath.lineTo(x,y)
-                        connect = True
-                    elif connect and (not ok):
-                        connect = False
-                    else:
-                        pass
-                self._update = status.LineStatus.DATA
+            self._rebuild()
         else:
             raise RuntimeWarning("numpy array callable only")
 
@@ -318,32 +273,7 @@ class Line:
         if callable(value[0]) and callable(value[1]):
             self._xscale = value[0]
             self._yscale = value[1]
-            if self.data is not None:
-                sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
-                self._scaled_data = sd
-                finite = np.all(np.isfinite(sd),axis=0)
-                if np.all(~finite):
-                    self.xrange = (0,1)
-                    self.yrange = (0,1)
-                    self._lpath = skia.Path()
-                    self._update = status.LineStatus.DATA
-                    return
-                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
-                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
-                self._lpath = skia.Path()
-                connect = False
-                for x,y,ok in np.vstack([sd,finite]).T:
-                    if connect and ok:
-                        self._lpath.lineTo(x,y)
-                    elif (not connect) and ok:
-                        self._lpath.moveTo(x,y)
-                        self._lpath.lineTo(x,y)
-                        connect = True
-                    elif connect and (not ok):
-                        connect = False
-                    else:
-                        pass
-                self._update = status.LineStatus.DATA
+            self._rebuild()
         else:
             raise RuntimeWarning("2-Tuple of numpy array callable only")
 
@@ -368,7 +298,7 @@ class Line:
         if self.markertype != MarkerType.NONE:
             canvas.drawPoints(skia.Canvas.kPoints_PointMode,self._aff_data.getPoints(),self._markerPaint)
 
-class FLine():
+class FLine(Line):
     def __init__(self):
         self._update = status.LineStatus.NONE
         self._data = None
@@ -413,24 +343,7 @@ class FLine():
             return
         d = np.array(value,dtype=np.float64).T
         self._data = d
-        sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
-        self._scaled_data = sd
-        finite = np.all(np.isfinite(sd),axis=0)
-        self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
-        self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
-        self._lpath = skia.Path()
-        connect = False
-        for x,y,ok in np.vstack([sd,finite]).T:
-            if connect and ok:
-                self._lpath.lineTo(x,y)
-            elif (not connect) and ok:
-                self._lpath.moveTo(x,y)
-                self._lpath.lineTo(x,y)
-                connect = True
-            elif connect and (not ok):
-                connect = False
-            else:
-                pass
+        self._rebuild()
         self._update = status.LineStatus.DATA
         if self.layer is not None:
             self.layer.update()
@@ -464,41 +377,37 @@ class FLine():
         return self._linetype
     @linetype.setter
     def linetype(self,value):
-        try:
-            if value in LineType._member_names_:
-                if value == "SOLID":
-                    self._linetype = LineType[value]
-                    p = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
-                    p.setColor4f(self.linecolor.skia4f)
-                    self._linePaint = p
-                elif value == "NONE":
-                    self._linetype = LineType[value]
-                    p = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
-                    p.setColor4f(self.linecolor.skia4f)
-                    self._linePaint = p
-                else:
-                    self._linetype = LineType[value]
-                    self._linePaint.setPathEffect(LineType[value].value)
-            elif value in LineType:
-                if value == LineType.SOLID:
-                    self._linetype = value
-                    p = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
-                    p.setColor4f(self.linecolor.skia4f)
-                    self._linePaint = p
-                elif value == LineType.NONE:
-                    self._linetype = LineType[value]
-                    p = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
-                    p.setColor4f(self.linecolor.skia4f)
-                    self._linePaint = p
-                else:
-                    self._linePaint.setPathEffect(value.value)
+        if value in LineType._member_names_:
+            if value == "SOLID":
+                self._linetype = LineType[value]
+                p = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
+                p.setColor4f(self.linecolor.skia4f)
+                self._linePaint = p
+            elif value == "NONE":
+                self._linetype = LineType[value]
+                p = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
+                p.setColor4f(self.linecolor.skia4f)
+                self._linePaint = p
             else:
-                raise RuntimeWarning("line type warning")
-        except:
-            raise
+                self._linetype = LineType[value]
+                self._linePaint.setPathEffect(LineType[value].value)
+        elif value in LineType:
+            if value == LineType.SOLID:
+                self._linetype = value
+                p = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
+                p.setColor4f(self.linecolor.skia4f)
+                self._linePaint = p
+            elif value == LineType.NONE:
+                self._linetype = LineType[value]
+                p = skia.Paint(Style=skia.Paint.Style.kStroke_Style,StrokeWidth=0)
+                p.setColor4f(self.linecolor.skia4f)
+                self._linePaint = p
+            else:
+                self._linePaint.setPathEffect(value.value)
         else:
-            if self.layer is not None:
-                self.layer.update()
+            raise RuntimeWarning("line type warning")
+        if self.layer is not None:
+            self.layer.update()
 
     @property
     def linecolor(self):
@@ -520,6 +429,36 @@ class FLine():
             if self.layer is not None:
                 self.layer.update()
 
+    def _build_path(self,sd):
+        path = skia.Path()
+        finite = np.all(np.isfinite(sd), axis=0)
+        if not finite.any():
+            self.xrange = (0,1)
+            self.yrange = (0,1)
+            return path
+        self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
+        self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
+        bound = np.flatnonzero(finite[1:] != finite[:-1])+1
+        for seg in np.split(np.arange(sd.shape[1]), bound):
+            if not finite[seg[0]]:
+                continue
+            pts = [skia.Point(p[0],p[1]) for p in sd[:, seg].T]
+            if len(pts) == 1:
+                path.moveTo(pts[0])
+                path.lineTo(pts[0])
+            else:
+                path.addPoly(pts, False)
+        return path
+
+    def _rebuild(self):
+        if self.data is not None:
+            sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
+            self._scaled_data = sd
+            self._lpath = self._build_path(sd)
+            self._update = status.LineStatus.DATA
+            if self.layer is not None:
+                self.layer.update()
+
     @property
     def xscale(self):
         return self._xscale
@@ -527,28 +466,7 @@ class FLine():
     def xscale(self,value):
         if callable(value):
             self._xscale = value
-            if self.data is not None:
-                sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
-                self._scaled_data = sd
-                finite = np.all(np.isfinite(sd),axis=0)
-                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
-                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
-                self._lpath = skia.Path()
-                connect = False
-                for x,y,ok in np.vstack([sd,finite]).T:
-                    if connect and ok:
-                        self._lpath.lineTo(x,y)
-                    elif (not connect) and ok:
-                        self._lpath.moveTo(x,y)
-                        self._lpath.lineTo(x,y)
-                        connect = True
-                    elif connect and (not ok):
-                        connect = False
-                    else:
-                        pass
-                self._update = status.LineStatus.DATA
-                if self.layer is not None:
-                    self.layer.update()
+            self._rebuild()
         else:
             raise RuntimeWarning("numpy array callable only")
 
@@ -559,28 +477,7 @@ class FLine():
     def yscale(self,value):
         if callable(value):
             self._yscale = value
-            if self.data is not None:
-                sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
-                self._scaled_data = sd
-                finite = np.all(np.isfinite(sd),axis=0)
-                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
-                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
-                self._lpath = skia.Path()
-                connect = False
-                for x,y,ok in np.vstack([sd,finite]).T:
-                    if connect and ok:
-                        self._lpath.lineTo(x,y)
-                    elif (not connect) and ok:
-                        self._lpath.moveTo(x,y)
-                        self._lpath.lineTo(x,y)
-                        connect = True
-                    elif connect and (not ok):
-                        connect = False
-                    else:
-                        pass
-                self._update = status.LineStatus.DATA
-                if self.layer is not None:
-                    self.layer.update()
+            self._rebuild()
         else:
             raise RuntimeWarning("numpy array callable only")
 
@@ -592,32 +489,11 @@ class FLine():
         if callable(value[0]) and callable(value[1]):
             self._xscale = value[0]
             self._yscale = value[1]
-            if self.data is not None:
-                sd = np.array([self._xscale(self.data[0]),self._yscale(self.data[1])])
-                self._scaled_data = sd
-                finite = np.all(np.isfinite(sd),axis=0)
-                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
-                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
-                self._lpath = skia.Path()
-                connect = False
-                for x,y,ok in np.vstack([sd,finite]).T:
-                    if connect and ok:
-                        self._lpath.lineTo(x,y)
-                    elif (not connect) and ok:
-                        self._lpath.moveTo(x,y)
-                        self._lpath.lineTo(x,y)
-                        connect = True
-                    elif connect and (not ok):
-                        connect = False
-                    else:
-                        pass
-                self._update = status.LineStatus.DATA
-                if self.layer is not None:
-                    self.layer.update()
+            self._rebuild()
         else:
             raise RuntimeWarning("2-Tuple of numpy array callable only")
 
-    def draw(self):
+    def draw(self,matrix,rect=None):
         self._update = status.LineStatus.NONE
 
     def flush(self,canvas):
@@ -648,39 +524,42 @@ class Line4Histogram(Line):
             return
         d = np.array(utility.histogram_proc(value),dtype=np.float64).T
         self._data = d.copy()
-        xs,ys = self._xscale(d[0]),self._yscale(d[1])
-        idxs = np.where(np.logical_and(np.isfinite(xs),ys>0))[0]
-        if len(idxs):
-            left = idxs[0]
-            right = idxs[-1]
-            xs = xs[left:right+1]
-            ys = ys[left:right+1]
-        sd = np.array([xs,ys])
-        self._scaled_data = sd
-        self._lpath = skia.Path()
-        finite = np.all(np.isfinite(sd),axis=0)
-        if np.all(~finite):
+        self._rebuild()
+        self._update = status.LineStatus.DATA
+
+    def _build_path(self,sd):
+        path = skia.Path()
+        finite = np.all(np.isfinite(sd), axis=0)
+        if not finite.any():
             self.xrange = (0,1)
             self.yrange = (0,1)
-            self._lpath = skia.Path()
-            self._update = status.LineStatus.DATA
-            return
+            return path
         self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
         self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
-        self._lpath = skia.Path()
-        connect = False
-        for x,y,ok in np.vstack([sd,finite]).T:
-            if connect and ok:
-                self._lpath.lineTo(x,y)
-            elif (not connect) and ok:
-                self._lpath.moveTo(x,y)
-                self._lpath.lineTo(x,y)
-                connect = True
-            elif connect and (not ok):
-                connect = False
+        bound = np.flatnonzero(finite[1:] != finite[:-1])+1
+        for seg in np.split(np.arange(sd.shape[1]), bound):
+            if not finite[seg[0]]:
+                continue
+            pts = [skia.Point(p[0],p[1]) for p in sd[:, seg].T]
+            if len(pts) == 1:
+                path.moveTo(pts[0])
+                path.lineTo(pts[0])
             else:
-                pass
-        self._update = status.LineStatus.DATA
+                path.addPoly(pts, False)
+        return path
+    def _rebuild(self):
+        if self.data is not None:
+            xs,ys = self._xscale(self.data[0]),self._yscale(self.data[1])
+            idxs = np.where(np.logical_and(np.isfinite(xs),ys>0))[0]
+            if len(idxs):
+                left = idxs[0]
+                right = idxs[-1]
+                xs = xs[left:right+1]
+                ys = ys[left:right+1]
+            sd = np.array([xs,ys])
+            self._scaled_data = sd
+            self._lpath = self._build_path(sd)
+            self._update = status.LineStatus.DATA
 
     @property
     def xscale(self):
@@ -689,39 +568,7 @@ class Line4Histogram(Line):
     def xscale(self,value):
         if callable(value):
             self._xscale = value
-            if self.data is not None:
-                xs,ys = self._xscale(self.data[0]),self._yscale(self.data[1])
-                idxs = np.where(np.logical_and(np.isfinite(xs),ys>0))[0]
-                if len(idxs):
-                    left = idxs[0]
-                    right = idxs[-1]
-                    xs = xs[left:right+1]
-                    ys = ys[left:right+1]
-                sd = np.array([xs,ys])
-                self._scaled_data = sd
-                finite = np.all(np.isfinite(sd),axis=0)
-                if np.all(~finite):
-                    self.xrange = (0,1)
-                    self.yrange = (0,1)
-                    self._lpath = skia.Path()
-                    self._update = status.LineStatus.DATA
-                    return
-                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
-                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
-                self._lpath = skia.Path()
-                connect = False
-                for x,y,ok in np.vstack([sd,finite]).T:
-                    if connect and ok:
-                        self._lpath.lineTo(x,y)
-                    elif (not connect) and ok:
-                        self._lpath.moveTo(x,y)
-                        self._lpath.lineTo(x,y)
-                        connect = True
-                    elif connect and (not ok):
-                        connect = False
-                    else:
-                        pass
-                self._update = status.LineStatus.DATA
+            self._rebuild()
         else:
             raise RuntimeWarning("numpy array callable only")
 
@@ -732,39 +579,7 @@ class Line4Histogram(Line):
     def yscale(self,value):
         if callable(value):
             self._yscale = value
-            if self.data is not None:
-                xs,ys = self._xscale(self.data[0]),self._yscale(self.data[1])
-                idxs = np.where(np.logical_and(np.isfinite(xs),ys>0))[0]
-                if len(idxs):
-                    left = idxs[0]
-                    right = idxs[-1]
-                    xs = xs[left:right+1]
-                    ys = ys[left:right+1]
-                sd = np.array([xs,ys])
-                self._scaled_data = sd
-                finite = np.all(np.isfinite(sd),axis=0)
-                if np.all(~finite):
-                    self.xrange = (0,1)
-                    self.yrange = (0,1)
-                    self._lpath = skia.Path()
-                    self._update = status.LineStatus.DATA
-                    return
-                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
-                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
-                self._lpath = skia.Path()
-                connect = False
-                for x,y,ok in np.vstack([sd,finite]).T:
-                    if connect and ok:
-                        self._lpath.lineTo(x,y)
-                    elif (not connect) and ok:
-                        self._lpath.moveTo(x,y)
-                        self._lpath.lineTo(x,y)
-                        connect = True
-                    elif connect and (not ok):
-                        connect = False
-                    else:
-                        pass
-                self._update = status.LineStatus.DATA
+            self._rebuild()
         else:
             raise RuntimeWarning("numpy array callable only")
 
@@ -776,39 +591,7 @@ class Line4Histogram(Line):
         if callable(value[0]) and callable(value[1]):
             self._xscale = value[0]
             self._yscale = value[1]
-            if self.data is not None:
-                xs,ys = self._xscale(self.data[0]),self._yscale(self.data[1])
-                idxs = np.where(np.logical_and(np.isfinite(xs),ys>0))[0]
-                if len(idxs):
-                    left = idxs[0]
-                    right = idxs[-1]
-                    xs = xs[left:right+1]
-                    ys = ys[left:right+1]
-                sd = np.array([xs,ys])
-                self._scaled_data = sd
-                finite = np.all(np.isfinite(sd),axis=0)
-                if np.all(~finite):
-                    self.xrange = (0,1)
-                    self.yrange = (0,1)
-                    self._lpath = skia.Path()
-                    self._update = status.LineStatus.DATA
-                    return
-                self.xrange = (np.min(sd[0][finite]),np.max(sd[0][finite]))
-                self.yrange = (np.min(sd[1][finite]),np.max(sd[1][finite]))
-                self._lpath = skia.Path()
-                connect = False
-                for x,y,ok in np.vstack([sd,finite]).T:
-                    if connect and ok:
-                        self._lpath.lineTo(x,y)
-                    elif (not connect) and ok:
-                        self._lpath.moveTo(x,y)
-                        self._lpath.lineTo(x,y)
-                        connect = True
-                    elif connect and (not ok):
-                        connect = False
-                    else:
-                        pass
-                self._update = status.LineStatus.DATA
+            self._rebuild()
         else:
             raise RuntimeWarning("2-Tuple of numpy array callable only")
 
@@ -872,7 +655,7 @@ class Image():
         if np.issubdtype(self.data.dtype,np.integer):
             arr = self.data
             vmin,vmax = np.min(arr),np.max(arr)
-            bins = min(int(vmax - vmin +1),const.MAX_HISTGRAM_BINS)
+            bins = min(int(vmax - vmin +1),const.MAX_HISTOGRAM_BINS)
             r = (vmin-0.5,vmax+0.5)
         elif np.issubdtype(self.data.dtype,np.floating):
             arr = self.data[np.isfinite(self.data)]
@@ -1022,13 +805,13 @@ class Image():
     @extent.setter
     def extent(self,value=None):
         if value is not None:
-            self._extent = rect.Rect(coodinate=value)
+            self._extent = rect.Rect(coordinate=value)
         else:
-            self._extent = rect.Rect(coodinate=(0.,0.,self.width+.0,self.height+.0))
+            self._extent = rect.Rect(coordinate=(0.,0.,self.width+.0,self.height+.0))
 
     @property
     def rect(self):
-        return rect.Rect(coodinate=(0.,0.,self.width+.0,self.height+.0))
+        return rect.Rect(coordinate=(0.,0.,self.width+.0,self.height+.0))
 
 class Fonts():
     segoe = skia.Typeface.MakeFromName("Segoe UI")

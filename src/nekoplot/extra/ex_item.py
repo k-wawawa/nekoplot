@@ -92,7 +92,7 @@ class DetectorImage():
             else:
                 self._update |= status.ImageStatus.DATA
                 self._update_mask_draw = True
-                self.data_mask_draw = np.array(dargs["mask"],dtype=bool)
+                self.data_mask_draw = np.array(dargs["mask_draw"],dtype=bool)
         if "mask_color" in dargs:
             self.mask_color = dargs.get("mask_color",self.mask_color)
         if "mask_alpha" in dargs:
@@ -127,7 +127,7 @@ class DetectorImage():
             if np.issubdtype(self.data.dtype,np.integer):
                 arr = self.data
                 vmin,vmax = np.min(arr),np.max(arr)
-                bins = min(int(vmax - vmin +1),const.MAX_HISTGRAM_BINS)
+                bins = min(int(vmax - vmin +1),const.MAX_HISTOGRAM_BINS)
                 r = (vmin-0.5,vmax+0.5)
             elif np.issubdtype(self.data.dtype,np.floating):
                 arr = self.data[np.isfinite(self.data)]
@@ -142,7 +142,7 @@ class DetectorImage():
                 if np.issubdtype(self.data.dtype,np.integer):
                     arr = self.data[~self.data_mask]
                     vmin,vmax = np.min(arr),np.max(arr)
-                    bins = min(int(vmax - vmin +1),const.MAX_HISTGRAM_BINS)
+                    bins = min(int(vmax - vmin +1),const.MAX_HISTOGRAM_BINS)
                     r = (vmin-0.5,vmax+0.5)
                 elif np.issubdtype(self.data.dtype,np.floating):
                     arr = self.data[np.logical_and(np.isfinite(self.data),~self.data_mask)]
@@ -350,10 +350,10 @@ class DetectorImage():
     @extent.setter
     def extent(self,value):
         if value is not None:
-            self._extent = rect.Rect(coodinate=value)
+            self._extent = rect.Rect(coordinate=value)
         else:
-            self._extent = rect.Rect(coodinate=(0.,0.,self.width+.0,self.height+.0))
+            self._extent = rect.Rect(coordinate=(0.,0.,self.width+.0,self.height+.0))
 
     @property
     def rect(self):
-        return rect.Rect(coodinate=(0.,0.,self.width+.0,self.height+.0))
+        return rect.Rect(coordinate=(0.,0.,self.width+.0,self.height+.0))

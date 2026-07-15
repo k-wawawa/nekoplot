@@ -4,3 +4,7 @@ src/nekoplot/extra/__pycache__/*
 src/nekoplot/nekoplot.egg-info/*
 src/nekoplot.egg-info/*
 src/nekoplot/__pycache__/*
+
+.venv
+__pycache__/
+*.egg-info/

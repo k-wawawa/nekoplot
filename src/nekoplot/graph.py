@@ -90,6 +90,7 @@ class Graph(panel.Panel):
         vb,vt = self.ylim
         vx = dx*(vr-vl)+vl
         vy = dy*(vt-vb)+vb
+        return self.xscale.inv(vx), self.yscale.inv(vy)
         return vx,vy
 
     def toDisp(self,x,y):
@@ -218,10 +219,11 @@ class Graph(panel.Panel):
         canvas.save()
         matrix = skia.Matrix.MakeAll(*self.mat9)
         self._draw_annotation(canvas,matrix,self.deviceRect)
+        canvas.restore()
 
     def flush(self,canvas):
         if self._update != status.GraphStatus.NONE:
-            self.draw()
+            self.draw(canvas)
         canvas.drawPicture(self.picture)
 
     def grapharea(self,canvas):
@@ -398,7 +400,7 @@ class Graph(panel.Panel):
         return self._xscale
     @xscale.setter
     def xscale(self,value):
-        if isinstance(value,scale.AbstructScale):
+        if isinstance(value,scale.AbstractScale):
             self.update()
             self._xscale = value
             for line in self.lines+self.flines:
@@ -411,7 +413,7 @@ class Graph(panel.Panel):
         return self._yscale
     @yscale.setter
     def yscale(self,value):
-        if isinstance(value,scale.AbstructScale):
+        if isinstance(value,scale.AbstractScale):
             self.update()
             self._yscale = value
             for line in self.lines+self.flines:
@@ -424,7 +426,7 @@ class Graph(panel.Panel):
         return self._xscale
     @xyscale.setter
     def xyscale(self,value):
-        if isinstance(value[0],scale.AbstructScale) and isinstance(value[1],scale.AbstructScale):
+        if isinstance(value[0],scale.AbstractScale) and isinstance(value[1],scale.AbstractScale):
             self.update()
             self._xscale,self._yscale = value
             for line in self.lines+self.flines:
@@ -511,7 +513,7 @@ class Graph1Image(Graph):
         return self.image.vscale
     @vscale.setter
     def vscale(self,value):
-        if isinstance(value,scale.AbstructScale):
+        if isinstance(value,scale.AbstractScale):
             self.update()
             self.image.set(vscale=value)
             if self.colorbar is not None:
@@ -581,7 +583,7 @@ class Graph1Line(Graph):
         return self._xscale
     @xscale.setter
     def xscale(self,value):
-        if isinstance(value,scale.AbstructScale):
+        if isinstance(value,scale.AbstractScale):
             self.update()
             self._xscale = value
             self.line.xscale = value
@@ -593,7 +595,7 @@ class Graph1Line(Graph):
         return self._yscale
     @yscale.setter
     def yscale(self,value):
-        if isinstance(value,scale.AbstructScale):
+        if isinstance(value,scale.AbstractScale):
             self.update()
             self._yscale = value
             self.line.yscale = value
@@ -605,7 +607,7 @@ class Graph1Line(Graph):
         return self._xscale
     @xyscale.setter
     def xyscale(self,value):
-        if isinstance(value[0],scale.AbstructScale) and isinstance(value[1],scale.AbstructScale):
+        if isinstance(value[0],scale.AbstractScale) and isinstance(value[1],scale.AbstractScale):
             self.update()
             self._xscale,self._yscale = value
             self.line.xyscale = value
@@ -651,7 +653,7 @@ class GraphColorBar(Graph):
         return self.image.vscale
     @vscale.setter
     def vscale(self,value):
-        if isinstance(value,scale.AbstructScale):
+        if isinstance(value,scale.AbstractScale):
             self.update()
             self.xscale = value
 
@@ -774,8 +776,6 @@ class GraphColorBar(Graph):
     def OnMouseLUp(self,evt):
         if status.MouseStatus.LEFT in self._capture_mouse:
             rot = 0 if self._devicerotate==status.RotateStatus.NONE else 1
-            if not self.contains(*evt.GetPosition()):
-                return
             if self.limit_px is None:
                 return
             pos = evt.GetPosition()[rot]
@@ -872,7 +872,7 @@ class GraphColorBar(Graph):
             if self._grab_limit == 1:
                 self.ref.set(vmin=v)
             elif self._grab_limit == 2:
-                self.ref.set(vmax=x)
+                self.ref.set(vmax=v)
             self.update()
             self.ref.update()
         self._capture_mouse = status.MouseStatus.NONE
