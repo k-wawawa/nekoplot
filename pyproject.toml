@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=64", "setuptools-scm>=8", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "nekoplot"
-version = "0.3.4"
+dynamic = ["version"]
 description = "plotting with wxPython and skia"
 readme = "README.md"
 license = { text = "MIT" }
@@ -29,3 +29,5 @@ where = ["src"]
 
 [tool.setuptools.package-dir]
 "" = "src"
+
+[tool.setuptools_scm]
