@@ -2,19 +2,19 @@ import numpy as np
 import skia
 
 class Rect(tuple):
-    def __new__(cls,*,coodinate=None,affine=None):
+    def __new__(cls,*,coordinate=None,affine=None):
         """
         coodinate = (x0,y0,x1,y1)
         affine = (sx,tx,sy,ty)
         """
-        if not ((coodinate is not None) ^ (affine is not None)):
+        if not ((coordinate is not None) ^ (affine is not None)):
             raise ValueError("only one of coodinate or affine can be provided,not both")
-        if coodinate:
-            if not isinstance(coodinate,(list,tuple)):
+        if coordinate:
+            if not isinstance(coordinate,(list,tuple)):
                 raise TypeError("Should be a list or tuple")
-            if len(coodinate) != 4:
+            if len(coordinate) != 4:
                 raise ValueError("Should contain exactly 4 elements")
-            obj = super().__new__(cls,[x+.0 for x in coodinate])
+            obj = super().__new__(cls,[x+.0 for x in coordinate])
             obj.sx = obj.x1-obj.x0
             obj.sy = obj.y1-obj.y0
             obj.tx = obj.x0
@@ -69,4 +69,4 @@ class Rect(tuple):
         xs,ys = xys.T
         xxs = self.sx*xs + self.tx
         yys = self.sy*ys + self.ty
-        return np.row_stack([xxs,yys]).T
+        return np.vstack([xxs,yys]).T

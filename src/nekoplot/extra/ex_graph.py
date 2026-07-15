@@ -94,7 +94,7 @@ class GraphDetector(graph.Graph):
     @im_mask.setter
     def im_mask(self,value):
         self._update = status.GraphStatus.UPDATE
-        self.image.set(data=value[0],mask=[1])
+        self.image.set(data=value[0],mask=value[1])
         self.image.make_histogram()
 
     @property
@@ -141,7 +141,7 @@ class GraphDetector(graph.Graph):
         return self.image.vscale
     @vscale.setter
     def vscale(self,value):
-        if isinstance(value,scale.AbstructScale):
+        if isinstance(value,scale.AbstractScale):
             self.update()
             self.image.set(vscale=value)
             if self.colorbar is not None:

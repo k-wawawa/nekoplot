@@ -86,8 +86,8 @@ class SizeEvent(Event):
     def LTWH(self,value):
         self.left = value[0]
         self.top = value[1]
-        self.right = value[0]+value[2]+1
-        self.bottom = value[1]+value[3]+1
+        self.right = value[0]+value[2]
+        self.bottom = value[1]+value[3]
 
     @property
     def WH(self):
@@ -201,6 +201,7 @@ class DPIChangedEvent(Event):
         evt = cls()
         odpi = event.GetOldDPI()
         evt.olddpi = (odpi.width,odpi.height)
-        ndpi = event.GetOldDPI()
-        evt.newdpi = (ndpi.width,odpi.height)
+        ndpi = event.GetNewDPI()
+        evt.newdpi = (ndpi.width,ndpi.height)
         evt.scalex = event.ScaleX(1)
+        return evt

@@ -91,7 +91,7 @@ class Color:
         s = v - vv
         if s == 0:
             h = 0
-        if self.blue==vv:
+        elif self.blue==vv:
             h = 60*(self.green-self.red)/s + 60
         elif self.red==vv:
             h = 60*(self.blue-self.green)/s + 180
@@ -351,7 +351,6 @@ class ColorMap:
 
     def __call__(self,xs):
         if isinstance(xs,(float,int)):
-            print(self.red(xs),self.green(xs),self.blue(xs),self.alpha(xs))
             return Color.fromU8(self.red(xs),self.green(xs),self.blue(xs),self.alpha(xs))
         else:
             return np.array([Color.fromU8(r,g,b,a) for r,g,b,a in zip(self.red(xs),self.green(xs),self.blue(xs),self.alpha(xs))])

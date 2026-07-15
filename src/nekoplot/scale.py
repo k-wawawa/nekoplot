@@ -1,7 +1,7 @@
 
 import numpy as np
 
-class AbstructScale:
+class AbstractScale:
     def __init__(self):
         pass
 
@@ -11,7 +11,7 @@ class AbstructScale:
     def inv(self,value):
         raise NotImplementedError()
 
-class LinearScale(AbstructScale):
+class LinearScale(AbstractScale):
     def __init__(self):
         super().__init__()
 
@@ -24,7 +24,7 @@ class LinearScale(AbstructScale):
     def inv(self,value):
         return value
 
-class Log10Scale(AbstructScale):
+class Log10Scale(AbstractScale):
     def __init__(self):
         super().__init__()
 
@@ -39,7 +39,7 @@ class Log10Scale(AbstructScale):
         with np.errstate(all="ignore"):
             return np.power(10,value)
 
-class LnScale(AbstructScale):
+class LnScale(AbstractScale):
     def __init__(self):
         super().__init__()
 
@@ -54,7 +54,7 @@ class LnScale(AbstructScale):
         with np.errstate(all="ignore"):
             return np.exp(value)
 
-class ASinhScale(AbstructScale):
+class ASinhScale(AbstractScale):
     def __init__(self):
         super().__init__()
 
@@ -69,7 +69,7 @@ class ASinhScale(AbstructScale):
         with np.errstate(all="ignore"):
             return np.sinh(value)
 
-class ASinh10Scale(AbstructScale):
+class ASinh10Scale(AbstractScale):
     L10 = np.array(np.log(10))
     def __init__(self):
         super().__init__()
