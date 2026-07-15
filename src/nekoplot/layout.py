@@ -1,14 +1,14 @@
 
-class AbstructLayout:
+class AbstractLayout:
     def __init__(self):
         self.children = []
 
-    def calcurate(self,width,height,dipscale=1):
+    def calculate(self,width,height,dipscale=1):
         # width,height から計算してchildrenに適用する部分
         pass
 
-class NullLayout(AbstructLayout):
-    def calcurate(self,width,height,dipscale=1):
+class NullLayout(AbstractLayout):
+    def calculate(self,width,height,dipscale=1):
         pass#print(width,height)
 
 class LayoutSize:
@@ -26,10 +26,10 @@ class LayoutSize:
         self.abs += a.abs
         return self
 
-class AbsLayout(AbstructLayout):
+class AbsLayout(AbstractLayout):
     pass
 
-class GridLayout(AbstructLayout):
+class GridLayout(AbstractLayout):
     class GridLayoutChild:
         def __init__(self,child,columnstart=0,rowstart=0,columnspan=1,rowspan=1):
             self.child = child
@@ -45,7 +45,7 @@ class GridLayout(AbstructLayout):
         self.size = None
         self.children = list()
 
-    def calcurate(self,width,height,dipscale=1):
+    def calculate(self,width,height,dipscale=1):
         w = LayoutSize()
         for size in self.columns:
             w += size
