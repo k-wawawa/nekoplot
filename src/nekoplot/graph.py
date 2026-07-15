@@ -90,7 +90,6 @@ class Graph(panel.Panel):
         vb,vt = self.ylim
         vx = dx*(vr-vl)+vl
         vy = dy*(vt-vb)+vb
-        return self.xscale.inv(vx), self.yscale.inv(vy)
         return vx,vy
 
     def toDisp(self,x,y):
