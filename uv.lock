@@ -10,7 +10,6 @@ resolution-markers = [
 
 [[package]]
 name = "nekoplot"
-version = "0.3.4"
 source = { editable = "." }
 dependencies = [
     { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },

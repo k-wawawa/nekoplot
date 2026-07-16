@@ -655,16 +655,23 @@ class Image():
         if np.issubdtype(self.data.dtype,np.integer):
             arr = self.data
             vmin,vmax = np.min(arr),np.max(arr)
-            bins = min(int(vmax - vmin +1),const.MAX_HISTOGRAM_BINS)
-            r = (vmin-0.5,vmax+0.5)
-        elif np.issubdtype(self.data.dtype,np.floating):
+            span = vmax - vmin + 1
+            if span <= const.MAX_HISTOGRAM_BINS:
+                counts = np.bincount(arr.ravel() - vmin)
+                centers = np.arange(vmin, vmax+1, dtype=np.float64)
+            else:
+                counts, edges = np.histogram(arr, bins=const.MAX_HISTOGRAM_BINS, range=(vmin -0.5, vmax+0.5))
+                centers = (edges[:-1] + edges[1:])*0.5
+        elif np.issubdtype(self.data.dtype, np.floating):
             arr = self.data[np.isfinite(self.data)]
-            bins = "auto"
-            r = (np.min(arr),np.max(arr))
+            if arr.size == 0:
+                self._histogram = None
+                return self._histogram
+            counts, edges = np.histogram(arr, bins=const.MAX_HISTOGRAM_BINS, range=(arr.min(), arr.max()))
+            centers = (edges[:-1] + edges[1:])*0.5
         else:
             raise RuntimeWarning("only integer or float")
-        counts,edges = np.histogram(arr,bins=bins,range=r)
-        self._histogram = np.array([(edges[:-1]+edges[1:])*0.5,counts])
+        self._histogram = np.array([centers,counts])
         if self.colorbar is not None:
             self.colorbar.line.set(data=self._histogram)
         return self._histogram
